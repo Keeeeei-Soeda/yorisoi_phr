@@ -40,6 +40,10 @@ try {
   console.warn("AI routes not loaded:", err.message);
 }
 
+// --- 患者体験記ルート（デモ/本番どちらでも動作） ---
+const storiesRoutes = require("./routes/stories");
+app.use("/api/stories", storiesRoutes);
+
 if (DEMO_MODE) {
   // --- デモモード: Firestore不要、サンプルデータで動作 ---
   console.log("*** DEMO MODE — using mock data (no Firestore) ***");
