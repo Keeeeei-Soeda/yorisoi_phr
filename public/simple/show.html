@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>みせる - よりそい</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" />
+  <style>
+    .placeholder {
+      text-align: center; padding: 60px 24px;
+      background: var(--white); border-radius: 16px;
+      border: 2px dashed var(--brand-200);
+    }
+    .placeholder .big-icon { font-size: 72px; color: var(--brand-300); }
+    .placeholder h2 { font-size: 20px; margin-top: 12px; letter-spacing: 1.5px; }
+    .placeholder p { font-size: 14px; color: var(--gray-600); line-height: 1.7; margin-top: 12px; letter-spacing: 0.5px; }
+    .placeholder .next { font-size: 13px; color: var(--gray-500); margin-top: 16px; }
+    .alt-link {
+      display: block; text-align: center; padding: 12px;
+      background: var(--brand-50); color: var(--brand-700);
+      border-radius: 12px; text-decoration: none;
+      font-size: 14px; font-weight: 600; margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="header-back" onclick="location.href='/simple/'+location.search">&larr;</button>
+    <h1>みせる</h1>
+  </div>
+
+  <div class="content">
+    <div class="placeholder">
+      <span class="material-symbols-outlined big-icon">co_present</span>
+      <h2>じゅんびちゅう です</h2>
+      <p>
+        おいしゃさんに みせる ための<br>
+        「きょうの ため」（このクリニックむけ）と<br>
+        「ぜんしんてき」（ぜんぶの しんりょうかむけ）の<br>
+        2つの がめんを つくっています。
+      </p>
+      <p class="next">いまは「くわしい」モードの サマリーが あります</p>
+    </div>
+
+    <a class="alt-link" href="/summary.html">→ いまの サマリーを みる（くわしいモード）</a>
+  </div>
+</body>
+</html>

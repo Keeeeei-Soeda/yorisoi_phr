@@ -51,6 +51,24 @@ async function initLiff() {
 function getTemplate() { return _template; }
 function getDiseaseId() { return _diseaseId; }
 
+/**
+ * 表示モードの取得 ('simple' | 'detail')
+ * - localStorage.yorisoi_mode が明示されていればそれを返す
+ * - 未設定で yorisoi_setup_done='1' なら既存ユーザ → 'detail' で後方互換
+ * - それ以外（新規 / setup未完了） → 'simple' を既定
+ */
+function getCurrentMode() {
+  const stored = localStorage.getItem("yorisoi_mode");
+  if (stored === "simple" || stored === "detail") return stored;
+  if (localStorage.getItem("yorisoi_setup_done") === "1") return "detail";
+  return "simple";
+}
+
+function setMode(mode) {
+  if (mode !== "simple" && mode !== "detail") return;
+  localStorage.setItem("yorisoi_mode", mode);
+}
+
 // --- API ヘルパー ---
 
 async function apiFetch(path, options = {}) {

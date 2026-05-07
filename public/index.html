@@ -37,6 +37,13 @@
         return;
       }
 
+      // 簡単モード時はランディングへリダイレクト（クエリ維持）
+      if (getCurrentMode() === "simple") {
+        const search = location.search || "";
+        location.replace("/simple/" + search);
+        return;
+      }
+
       try {
         const { template } = await initLiff();
 

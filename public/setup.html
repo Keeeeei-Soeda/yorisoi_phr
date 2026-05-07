@@ -194,7 +194,12 @@
       localStorage.setItem("yorisoi_modules", JSON.stringify(moduleSelections));
       localStorage.setItem("yorisoi_setup_done", "1");
 
-      // メイン画面へ
+      // 新規セットアップは簡単モードを既定にする（既存ユーザは既に detail/simple を選択済みなので上書きしない）
+      if (!localStorage.getItem("yorisoi_mode")) {
+        localStorage.setItem("yorisoi_mode", "simple");
+      }
+
+      // メイン画面へ（モード判定で /simple/ にリダイレクトされる）
       location.href = `/?disease=${selectedDisease}`;
     }
   </script>
