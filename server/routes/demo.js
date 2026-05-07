@@ -264,6 +264,43 @@ const DEMO_DATA = {
     ],
   },
 
+  poems: {
+    profile: {
+      displayName: "デモユーザー",
+      diagnosisName: "POEMS症候群",
+      diagnosisDate: "2024-08-10",
+      diseaseId: "poems",
+    },
+    timeline: [
+      { id: "ev1", date: "2023-04-15", category: "exam", title: "初発症状（手足のしびれ）", detail: "近医 脳神経内科受診。CIDP疑いでIVIG施行も改善乏しく、以後診断難渋。", source: "manual" },
+      { id: "ev2", date: "2024-02-01", category: "exam", title: "VEGF高値を指摘", detail: "他院での精査で血清VEGF 3,580 pg/mL。POEMS症候群を強く疑う所見。", source: "manual" },
+      { id: "ev3", date: "2024-08-10", category: "diagnosis", title: "POEMS症候群と確定診断", detail: "千葉大学 脳神経内科にて確定。M蛋白・多発神経障害・浮腫・臓器腫大・内分泌障害を満たす。", source: "manual" },
+      { id: "ev4", date: "2024-08-20", category: "medication_change", title: "サレド（サリドマイド）開始", detail: "100mg/日で導入。TERMS登録済。血栓予防にリクシアナ併用。", source: "manual" },
+      { id: "ev5", date: "2024-12-05", category: "hospitalization", title: "ASCT目的で入院（幹細胞採取）", detail: "シクロホスファミド+G-CSFで末梢血幹細胞採取。", source: "manual" },
+      { id: "ev6", date: "2025-01-10", category: "asct", title: "自家造血幹細胞移植（ASCT）施行", detail: "大量メルファラン（200mg/m²）前処置後、自家PBSCT。", source: "manual" },
+      { id: "ev7", date: "2025-03-20", category: "exam", title: "移植後3か月評価", detail: "VEGF 820 pg/mL（著明低下）。しびれ軽減・歩行距離改善。M蛋白ほぼ消失。", source: "manual" },
+      { id: "ev8", date: "2025-09-15", category: "remission", title: "寛解判定", detail: "VEGF正常化・M蛋白陰性・神経症状改善。維持療法としてレブラミド低用量へ。", source: "manual" },
+      { id: "ev9", date: "2026-03-10", category: "exam", title: "定期外来（血液内科）", detail: "VEGF 410 pg/mL。寛解維持。握力・歩行機能も安定。", source: "manual" },
+    ],
+    medications: [
+      { id: "m1", name: "レブラミド", genericName: "レナリドミド", category: "imid", dosageForm: "経口", startDate: "2025-09-15", endDate: null, isActive: true, changeReason: "寛解後の維持療法", sideNotes: "10mg/日 21日オン7日オフ。RevMate管理中" },
+      { id: "m2", name: "リクシアナ", genericName: "エドキサバン", category: "anticoagulant", dosageForm: "経口", startDate: "2024-08-20", endDate: null, isActive: true, changeReason: "IMiDs併用時の血栓予防", sideNotes: "30mg/日" },
+      { id: "m3", name: "プレドニン", genericName: "プレドニゾロン", category: "chemo", dosageForm: "経口", startDate: "2025-09-15", endDate: null, isActive: true, changeReason: "維持療法のパートナー", sideNotes: "5mg/日 維持量" },
+      { id: "m4", name: "タリージェ", genericName: "ミロガバリン", category: "support", dosageForm: "経口", startDate: "2024-08-20", endDate: null, isActive: true, changeReason: "手足のしびれ・痛み", sideNotes: "10mg 1日2回" },
+      { id: "m5", name: "チラーヂンS", genericName: "レボチロキシン", category: "endocrine", dosageForm: "経口", startDate: "2024-09-01", endDate: null, isActive: true, changeReason: "甲状腺機能低下の補充", sideNotes: "50μg/日 朝食前" },
+      { id: "m6", name: "サレド", genericName: "サリドマイド", category: "imid", dosageForm: "経口", startDate: "2024-08-20", endDate: "2024-12-05", isActive: false, changeReason: "ASCT前処置のため一旦中止", sideNotes: "TERMS登録済" },
+    ],
+    labResults: [
+      { id: "l1", date: "2026-03-10", values: { vegf: 410, mprotein: 0, plt: 28, hb: 13.2, alb: 4.1, ddimer: 0.5, hba1c: 5.8, tsh: 2.4, ft4: 1.2, testosterone: 4.8, cre: 0.82, egfr: 88 } },
+      { id: "l2", date: "2025-12-05", values: { vegf: 520, mprotein: 0, plt: 32, hb: 13.5, alb: 4.0, ddimer: 0.6, hba1c: 6.0, tsh: 2.6, ft4: 1.1, testosterone: 4.2, cre: 0.85, egfr: 86 } },
+      { id: "l3", date: "2025-09-15", values: { vegf: 480, mprotein: 0, plt: 29, hb: 12.8, alb: 3.9, ddimer: 0.7, hba1c: 6.1, tsh: 3.0, ft4: 1.0, testosterone: 3.8, cre: 0.88, egfr: 84 } },
+      { id: "l4", date: "2025-06-15", values: { vegf: 620, mprotein: 0.05, plt: 35, hb: 12.4, alb: 3.8, ddimer: 0.9, hba1c: 6.3, tsh: 3.2, ft4: 1.0, testosterone: 3.2, cre: 0.90, egfr: 82 } },
+      { id: "l5", date: "2025-03-20", values: { vegf: 820, mprotein: 0.12, plt: 45, hb: 11.8, alb: 3.5, ddimer: 1.2, hba1c: 6.5, tsh: 3.5, ft4: 0.9, testosterone: 2.8, cre: 0.95, egfr: 78 } },
+      { id: "l6", date: "2024-11-05", values: { vegf: 2180, mprotein: 0.35, plt: 58, hb: 11.2, alb: 3.2, ddimer: 1.8, hba1c: 6.8, tsh: 4.2, ft4: 0.8, testosterone: 2.1, cre: 1.05, egfr: 72 } },
+      { id: "l7", date: "2024-08-10", values: { vegf: 3580, mprotein: 0.68, plt: 72, hb: 10.5, alb: 2.9, ddimer: 2.4, hba1c: 7.1, tsh: 5.8, ft4: 0.7, testosterone: 1.8, cre: 1.12, egfr: 68 } },
+    ],
+  },
+
   pah: {
     profile: { displayName: "デモユーザー", diagnosisName: "肺動脈性肺高血圧症", diagnosisDate: "2020-01-22", diseaseId: "pah" },
     timeline: [
