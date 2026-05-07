@@ -13,10 +13,42 @@
     { "id": "restroom", "label": "トイレさがし", "description": "近くのトイレをマップで表示", "icon": "wc", "page": "restroom.html", "enabled": false },
     { "id": "emergency-card", "label": "緊急カード", "description": "救急時に見せる情報カード", "icon": "emergency", "page": "emergency-card.html", "enabled": true, "core": true },
     { "id": "lab-tracker", "label": "検査値きろく", "description": "血液検査の推移をグラフ表示", "icon": "science", "page": "lab-tracker.html", "enabled": true, "core": true },
-    { "id": "summary", "label": "診察用サマリー", "description": "診察時に医師に見せる画面", "icon": "description", "page": "summary.html", "enabled": true, "core": true, "fullWidth": true }
+    { "id": "summary", "label": "診察用サマリー", "description": "診察時に医師に見せる画面", "icon": "description", "page": "summary.html", "enabled": true, "core": true, "fullWidth": true },
+    { "id": "resources", "label": "患者会・支援情報", "description": "患者会・医療費助成・診療拠点情報", "icon": "groups", "page": "resources.html", "enabled": true, "core": true, "fullWidth": true }
   ],
 
   "medicationMaster": "ra-medications.json",
+
+  "resourcesConfig": {
+    "title": "患者会・支援情報",
+    "intro": "関節リウマチは自己免疫により関節に炎症が起きる疾患で、国内に推定60〜100万人の患者がいるとされます。指定難病ではありませんが、進行度に応じて身体障害者手帳や介護保険など利用できる制度があります ── そんな時に役立つ情報をまとめました。",
+    "sections": [
+      {
+        "heading": "患者会・ピアサポート",
+        "icon": "groups",
+        "items": [
+          { "name": "日本リウマチ友の会", "url": "https://www.tomonokai.net/", "note": "1960年設立の歴史ある患者会。会報『流』の発行、全国の支部活動、相談事業などを行っています。" }
+        ]
+      },
+      {
+        "heading": "公的支援・医療費助成",
+        "icon": "account_balance",
+        "items": [
+          { "name": "厚生労働省 身体障害者手帳", "url": "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/hukushi_kaigo/shougaishahukushi/techou.html", "note": "関節機能障害が一定基準を満たす場合、肢体不自由として身体障害者手帳の対象になります。等級・申請方法を解説。" },
+          { "name": "厚生労働省 介護保険制度", "url": "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/hukushi_kaigo/kaigo_koureisha/index.html", "note": "関節リウマチは介護保険の特定疾病に該当し、40〜64歳でもサービス利用が可能です。" }
+        ]
+      },
+      {
+        "heading": "医療情報・診療拠点",
+        "icon": "local_hospital",
+        "items": [
+          { "name": "日本リウマチ学会", "url": "https://www.ryumachi-jp.com/", "note": "診療ガイドライン、リウマチ専門医・指導医の検索ができ、認定施設を地域から探せます。" },
+          { "name": "日本リウマチ財団", "url": "https://www.rheuma-net.or.jp/", "note": "登録医・登録薬剤師制度を運営。市民向けのリウマチ情報や講演会の案内も掲載されています。" }
+        ]
+      }
+    ],
+    "footer": "掲載情報は執筆時点のものです。手続き・治療方針の最新情報は各公式サイト・主治医にご確認ください。"
+  },
 
   "symptomConfig": {
     "title": "症状きろく",

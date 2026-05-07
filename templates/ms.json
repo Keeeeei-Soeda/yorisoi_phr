@@ -13,10 +13,43 @@
     { "id": "restroom", "label": "トイレさがし", "description": "近くのトイレをマップで表示", "icon": "wc", "page": "restroom.html", "enabled": false },
     { "id": "emergency-card", "label": "緊急カード", "description": "救急時に見せる情報カード", "icon": "emergency", "page": "emergency-card.html", "enabled": true, "core": true },
     { "id": "lab-tracker", "label": "検査値きろく", "description": "血液検査の推移をグラフ表示", "icon": "science", "page": "lab-tracker.html", "enabled": true, "core": true },
-    { "id": "summary", "label": "診察用サマリー", "description": "診察時に医師に見せる画面", "icon": "description", "page": "summary.html", "enabled": true, "core": true, "fullWidth": true }
+    { "id": "summary", "label": "診察用サマリー", "description": "診察時に医師に見せる画面", "icon": "description", "page": "summary.html", "enabled": true, "core": true, "fullWidth": true },
+    { "id": "resources", "label": "患者会・支援情報", "description": "患者会・医療費助成・診療拠点情報", "icon": "groups", "page": "resources.html", "enabled": true, "core": true, "fullWidth": true }
   ],
 
   "medicationMaster": "ms-medications.json",
+
+  "resourcesConfig": {
+    "title": "患者会・支援情報",
+    "intro": "多発性硬化症（MS）は中枢神経の脱髄を起こす自己免疫疾患で、指定難病13に指定されています。国内患者数は約2万人とされ、再発寛解を繰り返す経過が特徴です。難病医療費助成や仲間との情報交換が長い経過を支えてくれます ── そんな時に役立つ情報をまとめました。",
+    "sections": [
+      {
+        "heading": "患者会・ピアサポート",
+        "icon": "groups",
+        "items": [
+          { "name": "MSキャビン", "url": "https://mscabin.org/", "note": "多発性硬化症・視神経脊髄炎の患者支援NPO。会報『キャビンレター』、相談事業、患者向けセミナーを展開しています。" },
+          { "name": "難病情報センター 患者団体一覧", "url": "https://www.nanbyou.or.jp/entry/1364", "note": "全国の難病患者団体の連絡先一覧。地域のMS患者会・交流会を探す入口として利用できます。" }
+        ]
+      },
+      {
+        "heading": "公的支援・医療費助成",
+        "icon": "account_balance",
+        "items": [
+          { "name": "難病情報センター 多発性硬化症／視神経脊髄炎（指定難病13）", "url": "https://www.nanbyou.or.jp/entry/3806", "note": "疾患概要、診断基準、医療費助成の対象基準（重症度分類）を確認できます。" },
+          { "name": "難病情報センター 医療費助成制度", "url": "https://www.nanbyou.or.jp/entry/5460", "note": "指定難病の医療費助成の申請手順・自己負担上限額・申請窓口を解説しています。" }
+        ]
+      },
+      {
+        "heading": "医療情報・診療拠点",
+        "icon": "local_hospital",
+        "items": [
+          { "name": "日本神経免疫学会", "url": "https://neuroimmunology.jp/", "note": "MS・NMOSDの研究と診療を担う学会。診療ガイドラインや市民向けの疾患情報を発信しています。" },
+          { "name": "日本神経学会", "url": "https://www.neurology-jp.org/", "note": "神経内科専門医の検索や、MSを含む神経疾患の市民向け解説資料が利用できます。" }
+        ]
+      }
+    ],
+    "footer": "掲載情報は執筆時点のものです。手続き・治療方針の最新情報は各公式サイト・主治医にご確認ください。"
+  },
 
   "symptomConfig": {
     "title": "症状きろく",

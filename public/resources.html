@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>患者会・支援情報 - よりそい PHR</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .intro { font-size: 14px; line-height: 1.7; color: var(--gray-700); background: var(--brand-50); padding: 14px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; }
+    .section { margin-bottom: 24px; }
+    .section-heading { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--gray-800); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--brand-200); }
+    .section-heading .material-symbols-outlined { font-size: 20px; color: var(--brand-500); }
+    .res-card { display: block; background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 10px; text-decoration: none; color: inherit; transition: all 0.15s; }
+    .res-card:hover { border-color: var(--brand-400); background: var(--brand-50); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .res-card:active { transform: scale(0.99); }
+    .res-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 700; color: var(--brand-700); margin-bottom: 6px; }
+    .res-link-icon { flex-shrink: 0; font-size: 16px; color: var(--gray-400); }
+    .res-note { font-size: 13px; color: var(--gray-600); line-height: 1.6; }
+    .footer-note { font-size: 12px; color: var(--gray-500); line-height: 1.6; text-align: center; margin-top: 24px; padding: 12px; background: var(--gray-50); border-radius: var(--radius-sm); }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--gray-500); }
+    .empty-state .material-symbols-outlined { font-size: 48px; color: var(--gray-300); margin-bottom: 12px; }
+  </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" />
+</head>
+<body>
+  <div class="header">
+    <button class="header-back" onclick="location.href='/?disease='+getDiseaseId()">&larr;</button>
+    <h1 id="page-title">患者会・支援情報</h1>
+  </div>
+
+  <div class="content">
+    <div id="container">
+      <div class="loading"><div class="loading-spinner"></div><p class="mt-8 text-sm text-muted">読み込み中...</p></div>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const { template } = await initLiff();
+        renderResources(template);
+      } catch (err) {
+        console.error("Load error:", err);
+        document.getElementById("container").innerHTML =
+          '<p class="text-sm" style="color:var(--danger)">読み込みに失敗しました</p>';
+      }
+    });
+
+    function renderResources(template) {
+      const config = template.resourcesConfig;
+      const container = document.getElementById("container");
+
+      if (!config || !config.sections || config.sections.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="material-symbols-outlined">info</span>
+            <p class="text-sm">この疾患の患者会・支援情報はまだ登録されていません。</p>
+            <p class="text-sm text-muted mt-8">主治医や難病相談支援センターへのご相談をおすすめします。</p>
+          </div>`;
+        return;
+      }
+
+      document.getElementById("page-title").textContent = config.title || "患者会・支援情報";
+
+      let html = "";
+      if (config.intro) {
+        html += `<div class="intro">${escapeHtml(config.intro)}</div>`;
+      }
+
+      config.sections.forEach((sec) => {
+        html += `<div class="section">`;
+        html += `<div class="section-heading">`;
+        if (sec.icon) html += `<span class="material-symbols-outlined">${escapeHtml(sec.icon)}</span>`;
+        html += `${escapeHtml(sec.heading)}</div>`;
+
+        (sec.items || []).forEach((item) => {
+          const url = item.url || "#";
+          const isExternal = url.startsWith("http");
+          html += `<a class="res-card" href="${escapeHtml(url)}" ${isExternal ? 'target="_blank" rel="noopener noreferrer"' : ""} onclick="return openResource(event, '${escapeHtml(url)}')">
+            <div class="res-title">
+              <span>${escapeHtml(item.name)}</span>
+              <span class="material-symbols-outlined res-link-icon">open_in_new</span>
+            </div>
+            ${item.note ? `<div class="res-note">${escapeHtml(item.note)}</div>` : ""}
+          </a>`;
+        });
+
+        html += `</div>`;
+      });
+
+      if (config.footer) {
+        html += `<div class="footer-note">${escapeHtml(config.footer)}</div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    // LIFF 内では liff.openWindow で外部ブラウザを開く
+    function openResource(event, url) {
+      if (typeof liff !== "undefined" && liff.isInClient && liff.isInClient()) {
+        event.preventDefault();
+        liff.openWindow({ url, external: true });
+        return false;
+      }
+      return true;
+    }
+  </script>
+</body>
+</html>

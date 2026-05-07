@@ -13,10 +13,45 @@
     { "id": "restroom", "label": "トイレさがし", "description": "近くのトイレをマップで表示", "icon": "wc", "page": "restroom.html", "enabled": false },
     { "id": "emergency-card", "label": "緊急カード", "description": "救急時に見せる情報カード", "icon": "emergency", "page": "emergency-card.html", "enabled": true, "core": true },
     { "id": "lab-tracker", "label": "検査値きろく", "description": "血液検査の推移をグラフ表示", "icon": "science", "page": "lab-tracker.html", "enabled": true, "core": true },
-    { "id": "summary", "label": "診察用サマリー", "description": "診察時に医師に見せる画面", "icon": "description", "page": "summary.html", "enabled": true, "core": true, "fullWidth": true }
+    { "id": "summary", "label": "診察用サマリー", "description": "診察時に医師に見せる画面", "icon": "description", "page": "summary.html", "enabled": true, "core": true, "fullWidth": true },
+    { "id": "resources", "label": "患者会・支援情報", "description": "患者会・医療費助成・診療拠点情報", "icon": "groups", "page": "resources.html", "enabled": true, "core": true, "fullWidth": true }
   ],
 
   "medicationMaster": "pah-medications.json",
+
+  "resourcesConfig": {
+    "title": "患者会・支援情報",
+    "intro": "肺動脈性肺高血圧症（PAH）は100万人に1〜2人とされる希少疾患で、指定難病86として医療費助成の対象です。患者会・公的支援・診療拠点の情報を、必要なときにすぐ手が届くよう集めました。",
+    "sections": [
+      {
+        "heading": "患者会・ピアサポート",
+        "icon": "groups",
+        "items": [
+          { "name": "NPO法人 PAHの会（肺高血圧症患者と家族の会）", "url": "https://www.pha-japan.ne.jp/", "note": "日本国内の代表的な肺高血圧症患者会。会員交流、生活支援情報、専門医とのつながりを提供しています。" },
+          { "name": "日本難病・疾病団体協議会（JPA）", "url": "https://nanbyo.jp/", "note": "難病・長期慢性疾病の患者団体の全国組織。地域の難病連絡先や制度に関する相談ができます。" }
+        ]
+      },
+      {
+        "heading": "公的支援・医療費助成",
+        "icon": "account_balance",
+        "items": [
+          { "name": "難病情報センター 肺動脈性肺高血圧症（指定難病86）", "url": "https://www.nanbyou.or.jp/entry/253", "note": "疾患概要・診断基準・医療費助成の対象基準を解説する公式情報ページです。" },
+          { "name": "肺高血圧症治療サポート 医療費と制度", "url": "https://pah-support.jp/connect/rule.php", "note": "指定難病・高額療養費・身体障害者手帳など、PAH患者が利用できる制度を整理しています。" }
+        ]
+      },
+      {
+        "heading": "医療情報・診療拠点",
+        "icon": "local_hospital",
+        "items": [
+          { "name": "日本肺高血圧・肺循環学会（JPCPHS）", "url": "http://jpcphs.org/", "note": "肺高血圧症診療の中核となる学会。診療ガイドライン・学術集会・登録研究の情報を発信しています。" },
+          { "name": "国立循環器病研究センター 肺高血圧症", "url": "https://www.ncvc.go.jp/hospital/pub/knowledge/disease/pph-index/", "note": "国の循環器専門センターによる疾患解説。症状・検査・治療を信頼性高くまとめています。" },
+          { "name": "肺高血圧症治療サポート（疾患情報サイト）", "url": "https://pah-support.jp/", "note": "症状・検査・治療・暮らしの工夫まで網羅した患者向け情報サイト（日本新薬運営）。" },
+          { "name": "Produce A Hope（PAH／PH患者向け情報サイト）", "url": "https://www.produceahope.jp/", "note": "PAH・PH患者と家族のための疾患情報・体験談・サポート情報を集約しています。" }
+        ]
+      }
+    ],
+    "footer": "掲載情報は執筆時点のものです。手続き・治療方針の最新情報は各公式サイト・主治医にご確認ください。"
+  },
 
   "symptomConfig": {
     "title": "症状きろく",

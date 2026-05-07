@@ -13,10 +13,46 @@
     { "id": "restroom", "label": "トイレさがし", "description": "近くのトイレをマップで表示", "icon": "wc", "page": "restroom.html", "enabled": false },
     { "id": "emergency-card", "label": "緊急カード", "description": "救急時に見せる情報カード", "icon": "emergency", "page": "emergency-card.html", "enabled": true, "core": true },
     { "id": "lab-tracker", "label": "検査値きろく", "description": "血液検査の推移をグラフ表示", "icon": "science", "page": "lab-tracker.html", "enabled": true, "core": true },
-    { "id": "summary", "label": "診察用サマリー", "description": "診察時に医師に見せる画面", "icon": "description", "page": "summary.html", "enabled": true, "core": true, "fullWidth": true }
+    { "id": "summary", "label": "診察用サマリー", "description": "診察時に医師に見せる画面", "icon": "description", "page": "summary.html", "enabled": true, "core": true, "fullWidth": true },
+    { "id": "resources", "label": "患者会・支援情報", "description": "患者会・医療費助成・診療拠点情報", "icon": "groups", "page": "resources.html", "enabled": true, "core": true, "fullWidth": true }
   ],
 
   "medicationMaster": "fabry-medications.json",
+
+  "resourcesConfig": {
+    "title": "患者会・支援情報",
+    "intro": "ファブリー病はライソゾームのα-ガラクトシダーゼ活性低下によって全身に症状が広がる遺伝性希少疾患（指定難病19「ライソゾーム病」に含まれる）です。同じ病気の仲間とつながりたい、医療費助成や診療拠点を知りたい ── そんな時に役立つ情報をまとめました。",
+    "sections": [
+      {
+        "heading": "患者会・ピアサポート",
+        "icon": "groups",
+        "items": [
+          { "name": "全国ファブリー病患者と家族の会（ふくろうの会）", "url": "https://www.fabrynet.jp/", "note": "2002年から活動する日本のファブリー病患者会。セミナー・交流会・相談窓口を提供しています。" },
+          { "name": "日本ライソゾーム病患者家族会協議会", "url": "https://j-lsd.com/", "note": "ファブリー病を含むライソゾーム病全般の患者・家族をつなぐ協議会。各疾患の患者会一覧も掲載。" },
+          { "name": "日本ファブリー病フォーラム（JFDF）", "url": "https://www.jfdf.jp/", "note": "医療者と患者・家族が情報共有するフォーラム。最新の研究・治療動向を学べます。" }
+        ]
+      },
+      {
+        "heading": "公的支援・医療費助成",
+        "icon": "account_balance",
+        "items": [
+          { "name": "難病情報センター ライソゾーム病（指定難病19）", "url": "https://www.nanbyou.or.jp/entry/4063", "note": "ファブリー病はライソゾーム病の枠で指定難病19として医療費助成の対象になります。制度概要・申請窓口を確認できます。" },
+          { "name": "小児慢性特定疾病情報センター ファブリー（Fabry）病", "url": "https://www.shouman.jp/disease/details/08_06_091/", "note": "18歳未満で発症した方向けの公的助成制度。疾病概要と申請の手引きを掲載。" },
+          { "name": "日本難病・疾病団体協議会（JPA）", "url": "https://nanbyo.jp/", "note": "難病・長期慢性疾病の患者団体の全国組織。制度改善の働きかけや相談窓口情報を発信しています。" }
+        ]
+      },
+      {
+        "heading": "医療情報・診療拠点",
+        "icon": "local_hospital",
+        "items": [
+          { "name": "日本ライソゾーム病研究会", "url": "http://lysosomal-sd.jp/", "note": "ライソゾーム病の専門医療者が集う学術団体。学術集会の情報や研究動向を確認できます。" },
+          { "name": "ファブリーコネクト（疾患情報サイト）", "url": "https://www.fabryconnect.jp/", "note": "症状チェック、診断・治療の解説、社会保障制度のガイドなど患者向け情報が網羅されています。" },
+          { "name": "慶應義塾大学病院 KOMPAS ファブリー（Fabry）病", "url": "https://kompas.hosp.keio.ac.jp/disease/000647/", "note": "大学病院による信頼性の高い疾患解説。症状・診断・治療を平易にまとめています。" }
+        ]
+      }
+    ],
+    "footer": "掲載情報は執筆時点のものです。手続き・治療方針の最新情報は各公式サイト・主治医にご確認ください。"
+  },
 
   "symptomConfig": {
     "title": "症状きろく",
