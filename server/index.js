@@ -52,12 +52,16 @@ if (DEMO_MODE) {
   const symptomRoutes = require("./routes/symptoms");
   const profileRoutes = require("./routes/profile");
   const summaryRoutes = require("./routes/summary");
+  const visitsRoutes = require("./routes/visits");
+  const clinicsRoutes = require("./routes/clinics");
 
   app.use("/api/profile", profileRoutes);
   app.use("/api/timeline", timelineRoutes);
   app.use("/api/medications", medicationRoutes);
   app.use("/api/symptoms", symptomRoutes);
   app.use("/api/summary", summaryRoutes);
+  app.use("/api/visits", visitsRoutes);
+  app.use("/api/clinics", clinicsRoutes);
 
   // 薬剤マスタ（認証不要の公開エンドポイント）
   app.get("/api/master/medications", (_req, res) => {

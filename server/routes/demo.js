@@ -299,6 +299,19 @@ const DEMO_DATA = {
       { id: "l6", date: "2024-11-05", values: { vegf: 2180, mprotein: 0.35, plt: 58, hb: 11.2, alb: 3.2, ddimer: 1.8, hba1c: 6.8, tsh: 4.2, ft4: 0.8, testosterone: 2.1, cre: 1.05, egfr: 72 } },
       { id: "l7", date: "2024-08-10", values: { vegf: 3580, mprotein: 0.68, plt: 72, hb: 10.5, alb: 2.9, ddimer: 2.4, hba1c: 7.1, tsh: 5.8, ft4: 0.7, testosterone: 1.8, cre: 1.12, egfr: 68 } },
     ],
+    clinics: [
+      { id: "c1", name: "千葉大学医学部附属病院", address: "千葉県千葉市中央区亥鼻1-8-1", phone: "043-222-7171", departments: ["血液内科", "脳神経内科"], isPrimary: true, note: "POEMS確定診断・ASCT実施。主治医は血液内科。" },
+      { id: "c2", name: "みやざき眼科クリニック", address: "千葉県千葉市稲毛区", phone: "", departments: ["眼科"], isPrimary: false, note: "視神経乳頭浮腫の定期フォロー。" },
+      { id: "c3", name: "田中内分泌クリニック", address: "千葉県千葉市稲毛区", phone: "", departments: ["内分泌科"], isPrimary: false, note: "甲状腺機能低下のフォロー・チラーヂンS処方。" },
+    ],
+    visits: [
+      { id: "v1", date: "2024-08-10", clinicId: "c1", department: "血液内科", doctor: "山田 太郎", chiefComplaint: "しびれ・浮腫が続いている", findings: "M蛋白・多発神経障害・浮腫・臓器腫大・内分泌障害を満たしPOEMSと確定診断。サレド導入を予定。", nextAction: "TERMS登録後にサレド開始。血栓予防にリクシアナ併用。", photos: [], relatedMedicationIds: [], relatedLabResultIds: ["l7"], relatedTimelineEventId: "ev3" },
+      { id: "v2", date: "2025-01-10", clinicId: "c1", department: "血液内科", doctor: "山田 太郎", chiefComplaint: "ASCT入院中", findings: "大量メルファラン前処置後、自家PBSCT実施。経過良好。", nextAction: "退院後、外来で月1回フォロー。", photos: [], relatedMedicationIds: ["m6"], relatedLabResultIds: [], relatedTimelineEventId: "ev6" },
+      { id: "v3", date: "2025-09-15", clinicId: "c1", department: "血液内科", doctor: "山田 太郎", chiefComplaint: "しびれ軽減・歩行距離改善", findings: "VEGF正常化・M蛋白陰性・神経症状改善。維持療法としてレブラミド低用量へ移行。", nextAction: "レブラミド10mg/日（21日オン7日オフ）。次回3ヶ月後。", photos: [], relatedMedicationIds: ["m1"], relatedLabResultIds: ["l3"], relatedTimelineEventId: "ev8" },
+      { id: "v4", date: "2026-03-10", clinicId: "c1", department: "血液内科", doctor: "山田 太郎", chiefComplaint: "握力・歩行機能とも安定", findings: "VEGF 410 pg/mL。寛解維持。レブラミド継続で経過良好。", nextAction: "次回6ヶ月後。眼科・内分泌のフォローも継続。", photos: [], relatedMedicationIds: ["m1", "m3"], relatedLabResultIds: ["l1"], relatedTimelineEventId: "ev9" },
+      { id: "v5", date: "2025-11-20", clinicId: "c2", department: "眼科", doctor: "宮崎 花子", chiefComplaint: "見え方は安定", findings: "視神経乳頭浮腫は軽度残存だが進行なし。視野・視力とも保たれている。", nextAction: "6ヶ月後フォロー。視野変化があれば早めに受診。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
+      { id: "v6", date: "2026-02-05", clinicId: "c3", department: "内分泌科", doctor: "田中 健", chiefComplaint: "倦怠感は軽快", findings: "TSH 2.4・FT4 1.2 と正常範囲。チラーヂン継続で安定。", nextAction: "現量継続。半年後に再評価。", photos: [], relatedMedicationIds: ["m5"], relatedLabResultIds: ["l1"], relatedTimelineEventId: null },
+    ],
   },
 
   pah: {
@@ -336,7 +349,10 @@ function getDiseaseId(req) {
 }
 
 function getData(diseaseId) {
-  return DEMO_DATA[diseaseId] || DEMO_DATA.uc;
+  const data = DEMO_DATA[diseaseId] || DEMO_DATA.uc;
+  if (!data.clinics) data.clinics = [];
+  if (!data.visits) data.visits = [];
+  return data;
 }
 
 function generateSymptomLogs(diseaseId) {
@@ -477,6 +493,99 @@ router.post("/api/labs", (req, res) => {
   if (!data.labResults) data.labResults = [];
   data.labResults.unshift(entry);
   res.status(201).json(entry);
+});
+
+// クリニックマスタ
+router.get("/api/clinics", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  res.json([...data.clinics].sort((a, b) => a.name.localeCompare(b.name, "ja")));
+});
+router.post("/api/clinics", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  if (!req.body.name) return res.status(400).json({ error: "name is required" });
+  if (!Array.isArray(req.body.departments) || req.body.departments.length === 0) {
+    return res.status(400).json({ error: "departments must be a non-empty array" });
+  }
+  const clinic = {
+    id: "c" + Date.now(),
+    address: "",
+    phone: "",
+    isPrimary: false,
+    note: "",
+    ...req.body,
+  };
+  data.clinics.push(clinic);
+  res.status(201).json(clinic);
+});
+router.put("/api/clinics/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = data.clinics.findIndex((c) => c.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  if (req.body.departments !== undefined) {
+    if (!Array.isArray(req.body.departments) || req.body.departments.length === 0) {
+      return res.status(400).json({ error: "departments must be a non-empty array" });
+    }
+  }
+  Object.assign(data.clinics[idx], req.body);
+  res.json(data.clinics[idx]);
+});
+router.delete("/api/clinics/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = data.clinics.findIndex((c) => c.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  data.clinics.splice(idx, 1);
+  res.json({ deleted: true });
+});
+
+// 受診（visits）
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+router.get("/api/visits", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  res.json([...data.visits].sort((a, b) => b.date.localeCompare(a.date)));
+});
+router.get("/api/visits/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const visit = data.visits.find((v) => v.id === req.params.id);
+  if (!visit) return res.status(404).json({ error: "Not found" });
+  res.json(visit);
+});
+router.post("/api/visits", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const { date, clinicId, department } = req.body;
+  if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date (YYYY-MM-DD) is required" });
+  if (!clinicId) return res.status(400).json({ error: "clinicId is required" });
+  if (!department) return res.status(400).json({ error: "department is required" });
+  const visit = {
+    id: "v" + Date.now(),
+    doctor: "",
+    chiefComplaint: "",
+    findings: "",
+    nextAction: "",
+    photos: [],
+    relatedMedicationIds: [],
+    relatedLabResultIds: [],
+    relatedTimelineEventId: null,
+    ...req.body,
+  };
+  data.visits.push(visit);
+  res.status(201).json(visit);
+});
+router.put("/api/visits/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = data.visits.findIndex((v) => v.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  if (req.body.date !== undefined && !DATE_RE.test(req.body.date)) {
+    return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+  }
+  Object.assign(data.visits[idx], req.body);
+  res.json(data.visits[idx]);
+});
+router.delete("/api/visits/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = data.visits.findIndex((v) => v.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  data.visits.splice(idx, 1);
+  res.json({ deleted: true });
 });
 
 // サマリー
