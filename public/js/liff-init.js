@@ -44,6 +44,11 @@ async function initLiff() {
   // テンプレート読み込み
   _template = await apiGet(`/api/config?disease=${_diseaseId}`);
 
+  // 詳細モード画面 (/simple/ 配下以外) で簡単モード文脈なら、ヘッダーに「←かんたんに戻る」を差し込む
+  if (!location.pathname.startsWith("/simple/")) {
+    try { attachSimpleBackBadge(); } catch (_) {}
+  }
+
   return { idToken: _idToken, userId: _userId, diseaseId: _diseaseId, template: _template };
 }
 
@@ -150,6 +155,49 @@ function escapeHtml(str) {
   const d = document.createElement("div");
   d.textContent = str || "";
   return d.innerHTML;
+}
+
+/**
+ * 戻り先 URL を判定する。
+ * - URL クエリ ?from=simple または現在モードが simple なら /simple/ に戻る
+ * - それ以外（くわしいモードでアクセス中）は / （詳細モードホーム）に戻る
+ * disease クエリは引き継ぐ。
+ */
+function getBackHref() {
+  const params = new URLSearchParams(location.search);
+  const from = params.get("from");
+  const isSimpleContext = from === "simple" || getCurrentMode() === "simple";
+  const disease = params.get("disease") || _diseaseId || localStorage.getItem("yorisoi_disease");
+  const q = disease ? "?disease=" + encodeURIComponent(disease) + (isSimpleContext ? "&from=simple" : "") : "";
+  return (isSimpleContext ? "/simple/" : "/") + (isSimpleContext ? q.replace("&from=simple","") : q);
+}
+
+/**
+ * 詳細モード画面のヘッダーに「← かんたんに戻る」バッジを差し込む。
+ * 簡単モード文脈のとき（?from=simple または getCurrentMode()==='simple'）のみ表示。
+ */
+function attachSimpleBackBadge() {
+  const params = new URLSearchParams(location.search);
+  const from = params.get("from");
+  const isSimpleContext = from === "simple" || getCurrentMode() === "simple";
+  if (!isSimpleContext) return;
+  // 既存の戻るボタンを置き換える
+  const back = document.querySelector(".header-back");
+  if (back) {
+    back.innerHTML = "←";
+    back.title = "かんたんモードに戻る";
+    back.onclick = () => { location.href = getBackHref(); };
+  }
+  // ヘッダーにバッジを追加
+  const header = document.querySelector(".header");
+  if (header && !header.querySelector(".simple-mode-badge")) {
+    const badge = document.createElement("a");
+    badge.className = "simple-mode-badge";
+    badge.href = getBackHref();
+    badge.style.cssText = "margin-left:auto; padding:4px 10px; background:rgba(255,255,255,0.2); color:#fff; font-size:11px; border-radius:12px; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px;";
+    badge.innerHTML = "← かんたんに戻る";
+    header.appendChild(badge);
+  }
 }
 
 /**

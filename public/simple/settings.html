@@ -26,7 +26,7 @@
     .settings-row:last-child { border-bottom: none; }
     .settings-row:active { background: var(--gray-50); }
     .settings-row .material-symbols-outlined { color: var(--brand-500); font-size: 24px; }
-    .settings-row .label { flex: 1; font-size: 16px; font-weight: 600; letter-spacing: 1px; }
+    .settings-row .label { flex: 1; font-size: 15px; font-weight: 600; letter-spacing: 1px; }
     .settings-row .sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; letter-spacing: 0.5px; }
     .settings-row .chevron { color: var(--gray-300); }
 
@@ -82,13 +82,45 @@
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">記録</div>
+      <div class="settings-section-title">あなたの記録を見る</div>
       <div class="settings-list">
-        <a class="settings-row" href="/simple/clinics.html">
-          <span class="material-symbols-outlined">local_hospital</span>
+        <a class="settings-row" id="link-meds" href="/medications.html">
+          <span class="material-symbols-outlined">medication</span>
           <div style="flex:1;">
-            <div class="label">かかりつけ病院</div>
-            <div class="sub">病院・診療科を登録</div>
+            <div class="label">お薬一覧</div>
+            <div class="sub">処方薬の追加・変更履歴</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
+        <a class="settings-row" id="link-labs" href="/lab-tracker.html">
+          <span class="material-symbols-outlined">science</span>
+          <div style="flex:1;">
+            <div class="label">検査値きろく</div>
+            <div class="sub">数値の推移をグラフで見る</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
+        <a class="settings-row" id="link-symptom" href="/symptom-log.html">
+          <span class="material-symbols-outlined">edit_note</span>
+          <div style="flex:1;">
+            <div class="label">症状きろく</div>
+            <div class="sub">毎日の症状を記録する</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
+        <a class="settings-row" id="link-emergency" href="/emergency-card.html">
+          <span class="material-symbols-outlined" style="color:#dc2626;">emergency</span>
+          <div style="flex:1;">
+            <div class="label">緊急カード</div>
+            <div class="sub">救急時に医師に見せる情報</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
+        <a class="settings-row" id="link-resources" href="/resources.html">
+          <span class="material-symbols-outlined">groups</span>
+          <div style="flex:1;">
+            <div class="label">患者会・支援情報</div>
+            <div class="sub">同じ病気の仲間・公的支援</div>
           </div>
           <span class="material-symbols-outlined chevron">chevron_right</span>
         </a>
@@ -96,9 +128,17 @@
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">アプリ</div>
+      <div class="settings-section-title">登録情報</div>
       <div class="settings-list">
-        <a class="settings-row" href="/setup.html">
+        <a class="settings-row" id="link-clinics" href="/simple/clinics.html">
+          <span class="material-symbols-outlined">local_hospital</span>
+          <div style="flex:1;">
+            <div class="label">かかりつけ病院</div>
+            <div class="sub">病院・診療科を登録</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
+        <a class="settings-row" id="link-disease" href="/setup.html">
           <span class="material-symbols-outlined">tune</span>
           <div style="flex:1;">
             <div class="label">病気の変更</div>
@@ -131,12 +171,24 @@
       const current = getCurrentMode();
       applyToggleUI(current);
 
+      // 全ての記録系リンクに ?disease=xxx&from=simple を付ける
+      const q = location.search ? (location.search + "&from=simple") : "?from=simple";
+      ["link-meds","link-labs","link-symptom","link-emergency","link-resources","link-clinics","link-disease"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const url = new URL(el.getAttribute("href"), location.origin);
+        // disease を引き継ぐ
+        const disease = new URLSearchParams(location.search).get("disease");
+        if (disease) url.searchParams.set("disease", disease);
+        url.searchParams.set("from", "simple");
+        el.setAttribute("href", url.pathname + "?" + url.searchParams.toString());
+      });
+
       document.querySelectorAll("#mode-toggle button").forEach((btn) => {
         btn.addEventListener("click", () => {
           const newMode = btn.dataset.mode;
           setMode(newMode);
           applyToggleUI(newMode);
-          // 詳細モードに切り替えたら / に飛ばして既存画面へ
           if (newMode === "detail") {
             location.href = "/" + location.search;
           }

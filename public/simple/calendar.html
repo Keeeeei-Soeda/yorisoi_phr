@@ -7,42 +7,322 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" />
   <style>
-    .placeholder {
-      text-align: center; padding: 60px 24px;
-      background: var(--white); border-radius: 16px;
-      border: 2px dashed var(--brand-200);
+    body { padding-bottom: 20px; }
+    .page-header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+      color: var(--white);
+      display: flex; align-items: center; gap: 12px;
     }
-    .placeholder .big-icon { font-size: 72px; color: var(--brand-300); }
-    .placeholder h2 { font-size: 20px; margin-top: 12px; letter-spacing: 1.5px; }
-    .placeholder p { font-size: 14px; color: var(--gray-600); line-height: 1.7; margin-top: 12px; letter-spacing: 0.5px; }
-    .placeholder .next { font-size: 13px; color: var(--gray-500); margin-top: 16px; }
-    .alt-link {
-      display: block; text-align: center; padding: 12px;
-      background: var(--brand-50); color: var(--brand-700);
-      border-radius: 12px; text-decoration: none;
-      font-size: 14px; font-weight: 600; margin-top: 16px;
+    .back-btn { background: none; border: none; color: var(--white); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+    .page-header h1 { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+
+    /* カレンダー */
+    .cal-section { background: var(--white); padding: 16px; border-bottom: 1px solid var(--gray-100); }
+    .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .cal-head h2 { font-size: 17px; font-weight: 700; letter-spacing: 1px; }
+    .cal-nav-btn { background: var(--gray-100); border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    .cal-nav-btn:active { background: var(--gray-200); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-dow { font-size: 11px; color: var(--gray-500); text-align: center; padding: 4px 0; }
+    .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; position: relative; }
+    .cal-cell.outside { color: var(--gray-300); }
+    .cal-cell:hover { background: var(--gray-50); }
+    .cal-cell.today { font-weight: 700; color: var(--brand-700); }
+    .cal-cell.selected { background: var(--brand-500); color: var(--white) !important; }
+    .cal-cell.has-visit::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--brand-500); position: absolute; bottom: 4px; }
+    .cal-cell.has-self::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #0284c7; position: absolute; bottom: 4px; }
+    .cal-cell.has-both::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(90deg, var(--brand-500) 50%, #0284c7 50%); position: absolute; bottom: 4px; }
+    .cal-cell.selected::after { background: #fff !important; }
+    .cal-legend { display: flex; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--gray-600); justify-content: center; }
+    .cal-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+    /* フィルタ */
+    .clinic-filter {
+      display: flex; gap: 6px; padding: 12px 16px; overflow-x: auto;
+      scrollbar-width: none; -ms-overflow-style: none; background: var(--white); border-bottom: 1px solid var(--gray-100);
     }
+    .clinic-filter::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      padding: 6px 12px; border-radius: 16px; border: 1.5px solid var(--gray-300);
+      background: var(--white); font-size: 12px; font-weight: 600; color: var(--gray-700);
+      white-space: nowrap; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+    }
+    .filter-chip.active { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
+    .filter-chip .star { color: #fbbf24; margin-right: 2px; }
+    .filter-chip.active .star { color: #fff; }
+
+    /* タイムライン */
+    .timeline-section { padding: 16px; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--gray-500); margin: 0 0 10px; letter-spacing: 1.5px; padding-left: 4px; }
+    .timeline-line { position: relative; padding-left: 24px; }
+    .timeline-line::before { content: ""; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--brand-200); }
+    .timeline-item { position: relative; margin-bottom: 14px; }
+    .timeline-dot { position: absolute; left: -24px; top: 18px; width: 14px; height: 14px; border-radius: 50%; background: var(--brand-500); border: 3px solid var(--white); box-shadow: var(--shadow-sm); }
+    .timeline-dot.self { background: #0284c7; }
+    .year-divider { font-size: 13px; font-weight: 700; color: var(--brand-600); padding: 8px 0; margin-top: 4px; }
+    .ev-card { background: var(--white); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow-sm); cursor: pointer; }
+    .ev-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .ev-date { font-size: 11px; color: var(--gray-500); }
+    .ev-cat { font-size: 10px; padding: 2px 8px; border-radius: 8px; background: var(--gray-100); color: var(--gray-700); font-weight: 700; }
+    .ev-title { font-size: 14px; font-weight: 700; color: var(--gray-800); margin-top: 4px; }
+    .ev-detail { font-size: 12px; color: var(--gray-600); margin-top: 4px; line-height: 1.5; }
+    .ev-chips { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+    .chip-dept { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; color: #fff; }
+    .chip-clinic { font-size: 10px; color: var(--gray-600); padding: 1px 6px; background: var(--gray-100); border-radius: 6px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-clinic .star { color: #f59e0b; margin-right: 2px; }
+
+    .empty { text-align: center; padding: 30px 20px; color: var(--gray-500); font-size: 13px; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <button class="header-back" onclick="location.href='/simple/'+location.search">&larr;</button>
+  <div class="page-header">
+    <button class="back-btn" id="back-btn">&larr;</button>
     <h1>ふりかえる</h1>
   </div>
 
-  <div class="content">
-    <div class="placeholder">
-      <span class="material-symbols-outlined big-icon">calendar_month</span>
-      <h2>準備中です</h2>
-      <p>
-        カレンダーでこれまでの受診・症状・薬の変化を<br>
-        ひと目で確認できる画面を準備中です。<br>
-        連続で記録した日数も表示する予定です。
-      </p>
-      <p class="next">いまは「くわしい」モードでこれまでの記録を見られます</p>
+  <!-- カレンダー -->
+  <div class="cal-section">
+    <div class="cal-head">
+      <button class="cal-nav-btn" id="cal-prev">&larr;</button>
+      <h2 id="cal-month">2026年5月</h2>
+      <button class="cal-nav-btn" id="cal-next">&rarr;</button>
     </div>
-
-    <a class="alt-link" href="/timeline.html">→ これまでの記録を見る（詳細モード）</a>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <span><span class="dot" style="background:var(--brand-500);"></span>受診</span>
+      <span><span class="dot" style="background:#0284c7;"></span>体調メモ</span>
+    </div>
   </div>
+
+  <!-- クリニック軸フィルタ -->
+  <div id="filter-bar"></div>
+
+  <!-- タイムライン -->
+  <div class="timeline-section">
+    <h3 class="section-title" id="timeline-section-title">これまでの記録</h3>
+    <div id="timeline-container">
+      <div class="loading"><div class="loading-spinner"></div><p class="mt-8 text-sm text-muted">読み込み中...</p></div>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script>
+    let allEvents = [];
+    let allVisits = [];
+    let allClinics = [];
+    let visitByEventId = new Map();
+    let clinicById = new Map();
+    let categoryLabels = {};
+    let activeClinicFilter = "all";
+    let calYear, calMonth; // 0-indexed month
+    let selectedDate = null; // "YYYY-MM-DD"
+
+    const DEPT_COLORS = ["#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#ec4899", "#0891b2", "#ef4444", "#6366f1"];
+    function deptColor(dept) {
+      if (!dept) return "#94a3b8";
+      let h = 0; for (let i = 0; i < dept.length; i++) h = (h * 31 + dept.charCodeAt(i)) >>> 0;
+      return DEPT_COLORS[h % DEPT_COLORS.length];
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const ctx = await initLiff();
+      const q = "?disease=" + encodeURIComponent(ctx.diseaseId);
+      document.getElementById("back-btn").onclick = () => location.href = "/simple/" + q;
+      if (ctx.template?.color) document.querySelector(".page-header").style.background = `linear-gradient(135deg, ${ctx.template.color}, ${ctx.template.color}dd)`;
+
+      categoryLabels = getCategoryLabels();
+
+      const [events, visits, clinics] = await Promise.all([
+        apiGet("/api/timeline").catch(() => []),
+        apiGet("/api/visits").catch(() => []),
+        apiGet("/api/clinics").catch(() => []),
+      ]);
+      allEvents = (Array.isArray(events) ? events : []).slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      allVisits = (Array.isArray(visits) ? visits : (visits.visits || []));
+      allClinics = (Array.isArray(clinics) ? clinics : (clinics.clinics || []));
+
+      clinicById = new Map(allClinics.map((c) => [c.id, c]));
+      visitByEventId = new Map();
+      allVisits.forEach((v) => { if (v.relatedTimelineEventId) visitByEventId.set(v.relatedTimelineEventId, v); });
+
+      // フィルタ初期値
+      const stored = localStorage.getItem("yorisoi_timeline_clinic_filter");
+      if (stored && (stored === "all" || clinicById.has(stored))) activeClinicFilter = stored;
+
+      // カレンダー: 直近イベントの月、なければ今月
+      const today = new Date();
+      const recentEvent = allEvents[0];
+      if (recentEvent && recentEvent.date) {
+        const [y, m] = recentEvent.date.split("-").map(Number);
+        calYear = y; calMonth = m - 1;
+      } else {
+        calYear = today.getFullYear(); calMonth = today.getMonth();
+      }
+
+      renderFilterBar();
+      renderCalendar();
+      renderTimeline();
+
+      document.getElementById("cal-prev").addEventListener("click", () => {
+        calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+        renderCalendar();
+      });
+      document.getElementById("cal-next").addEventListener("click", () => {
+        calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+        renderCalendar();
+      });
+    });
+
+    function renderFilterBar() {
+      const bar = document.getElementById("filter-bar");
+      if (!allClinics.length) { bar.innerHTML = ""; return; }
+      const sorted = [...allClinics].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+      const chips = [
+        `<button class="filter-chip ${activeClinicFilter === "all" ? "active" : ""}" data-id="all">ぜんぶ</button>`,
+        ...sorted.map((c) => {
+          const star = c.isPrimary ? '<span class="star">★</span>' : "";
+          const short = c.name.length > 8 ? c.name.slice(0, 8) + "…" : c.name;
+          return `<button class="filter-chip ${activeClinicFilter === c.id ? "active" : ""}" data-id="${c.id}">${star}${escapeHtml(short)}</button>`;
+        }),
+      ].join("");
+      bar.innerHTML = `<div class="clinic-filter">${chips}</div>`;
+      bar.querySelectorAll(".filter-chip").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          activeClinicFilter = btn.dataset.id;
+          localStorage.setItem("yorisoi_timeline_clinic_filter", activeClinicFilter);
+          renderFilterBar();
+          renderTimeline();
+        });
+      });
+    }
+
+    function renderCalendar() {
+      document.getElementById("cal-month").textContent = `${calYear}年${calMonth + 1}月`;
+      const grid = document.getElementById("cal-grid");
+      const dows = ["日", "月", "火", "水", "木", "金", "土"];
+      let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join("");
+
+      // 日付分布
+      const visitDates = new Set();
+      const selfDates = new Set();
+      allEvents.forEach((ev) => {
+        if (!ev.date) return;
+        const [y, m] = ev.date.split("-").map(Number);
+        if (y !== calYear || m - 1 !== calMonth) return;
+        if (ev.category === "self-log") selfDates.add(ev.date);
+        else visitDates.add(ev.date);
+      });
+
+      const first = new Date(calYear, calMonth, 1);
+      const last = new Date(calYear, calMonth + 1, 0);
+      const startDow = first.getDay();
+      const lastDate = last.getDate();
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+
+      // 前月分
+      const prevLast = new Date(calYear, calMonth, 0).getDate();
+      for (let i = startDow - 1; i >= 0; i--) {
+        html += `<div class="cal-cell outside">${prevLast - i}</div>`;
+      }
+      for (let d = 1; d <= lastDate; d++) {
+        const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const cls = ["cal-cell"];
+        if (dateStr === todayStr) cls.push("today");
+        if (dateStr === selectedDate) cls.push("selected");
+        const hasV = visitDates.has(dateStr);
+        const hasS = selfDates.has(dateStr);
+        if (hasV && hasS) cls.push("has-both");
+        else if (hasV) cls.push("has-visit");
+        else if (hasS) cls.push("has-self");
+        html += `<div class="${cls.join(' ')}" data-date="${dateStr}">${d}</div>`;
+      }
+      // 翌月分（7の倍数になるよう）
+      const total = startDow + lastDate;
+      const trail = (7 - total % 7) % 7;
+      for (let d = 1; d <= trail; d++) {
+        html += `<div class="cal-cell outside">${d}</div>`;
+      }
+      grid.innerHTML = html;
+      grid.querySelectorAll(".cal-cell[data-date]").forEach((el) => {
+        el.addEventListener("click", () => {
+          selectedDate = (selectedDate === el.dataset.date) ? null : el.dataset.date;
+          renderCalendar();
+          renderTimeline();
+        });
+      });
+    }
+
+    function renderTimeline() {
+      const container = document.getElementById("timeline-container");
+      const titleEl = document.getElementById("timeline-section-title");
+
+      let events = allEvents;
+      if (selectedDate) {
+        events = events.filter((ev) => ev.date === selectedDate);
+        titleEl.textContent = `${selectedDate} の記録`;
+      } else if (activeClinicFilter !== "all") {
+        events = events.filter((ev) => {
+          const v = visitByEventId.get(ev.id);
+          return v && v.clinicId === activeClinicFilter;
+        });
+        const c = clinicById.get(activeClinicFilter);
+        titleEl.textContent = c ? `${c.name} の記録` : "これまでの記録";
+      } else {
+        titleEl.textContent = "これまでの記録";
+      }
+
+      if (!events.length) {
+        const msg = selectedDate ? `${selectedDate} には記録がありません` : "まだ記録がありません";
+        container.innerHTML = `<div class="empty">${msg}</div>`;
+        return;
+      }
+
+      let html = '<div class="timeline-line">';
+      let currentYear = null;
+
+      events.forEach((ev) => {
+        const year = ev.date ? ev.date.substring(0, 4) : "不明";
+        if (year !== currentYear) { currentYear = year; html += `<div class="year-divider">${year}年</div>`; }
+        const catLabel = categoryLabels[ev.category] || CATEGORY_LABELS[ev.category] || ev.category;
+        const isSelf = ev.category === "self-log";
+
+        const visit = visitByEventId.get(ev.id);
+        let chips = "";
+        if (visit) {
+          const clinic = clinicById.get(visit.clinicId);
+          const dept = visit.department || "";
+          const clinicName = clinic ? clinic.name : "クリニック未登録";
+          const star = clinic && clinic.isPrimary ? '<span class="star">★</span>' : "";
+          const color = deptColor(dept);
+          chips = `
+            <div class="ev-chips">
+              ${dept ? `<span class="chip-dept" style="background:${color}">${escapeHtml(dept)}</span>` : ""}
+              <span class="chip-clinic">${star}${escapeHtml(clinicName)}</span>
+            </div>`;
+        }
+
+        html += `
+          <div class="timeline-item">
+            <div class="timeline-dot ${isSelf ? 'self' : ''}"></div>
+            <div class="ev-card" onclick="location.href='/timeline-edit.html?id=${ev.id}'">
+              <div class="ev-head">
+                <div style="flex:1; min-width:0;">
+                  <div class="ev-date">${formatDate(ev.date)}</div>
+                  <div style="margin-top:4px;"><span class="ev-cat">${catLabel}</span></div>
+                </div>
+                ${chips}
+              </div>
+              <div class="ev-title">${escapeHtml(ev.title)}</div>
+              ${ev.detail ? `<div class="ev-detail">${escapeHtml(ev.detail)}</div>` : ""}
+            </div>
+          </div>`;
+      });
+      html += "</div>";
+      container.innerHTML = html;
+    }
+  </script>
 </body>
 </html>

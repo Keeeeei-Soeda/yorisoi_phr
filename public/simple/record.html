@@ -9,10 +9,18 @@
   <style>
     body { padding-bottom: 96px; }
 
-    /* プログレス */
+    /* タブ */
+    .record-tabs { display: flex; background: var(--white); border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 10; }
+    .record-tab {
+      flex: 1; padding: 14px 8px; text-align: center; font-size: 14px; font-weight: 700;
+      color: var(--gray-500); border: none; background: none; border-bottom: 3px solid transparent;
+      cursor: pointer; letter-spacing: 1px;
+    }
+    .record-tab.active { color: var(--brand-600); border-bottom-color: var(--brand-500); background: var(--brand-50); }
+
+    /* 受診タブ プログレス */
     .progress-bar {
       display: flex; gap: 6px; padding: 12px 16px 0; background: var(--white);
-      position: sticky; top: 0; z-index: 5;
     }
     .progress-dot {
       flex: 1; height: 6px; border-radius: 3px; background: var(--gray-200);
@@ -24,12 +32,9 @@
     /* ペイン */
     .pane { display: none; padding: 20px 16px; }
     .pane.active { display: block; }
-    .pane-title {
-      font-size: 22px; font-weight: 700; letter-spacing: 1px; margin-bottom: 6px;
-    }
+    .pane-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; margin-bottom: 6px; }
     .pane-sub { font-size: 13px; color: var(--gray-500); margin-bottom: 20px; line-height: 1.7; }
 
-    /* Step1 — クリニックリスト */
     .clinic-pick {
       background: var(--white); border: 2px solid var(--gray-200);
       border-radius: 16px; padding: 14px 16px; margin-bottom: 12px;
@@ -57,11 +62,15 @@
       background: var(--white); border-radius: 16px; border: 2px dashed var(--gray-200);
     }
     .empty-clinic .material-symbols-outlined { font-size: 48px; color: var(--gray-300); }
-    .empty-clinic-cta {
-      display: inline-block; margin-top: 12px;
-      padding: 10px 20px; background: var(--brand-500); color: var(--white);
-      border-radius: 999px; font-weight: 600; text-decoration: none;
+    .add-clinic-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 14px; margin-top: 8px;
+      background: var(--white); border: 2px dashed var(--brand-300);
+      border-radius: 16px; color: var(--brand-700);
+      font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none;
     }
+    .add-clinic-btn:active { transform: scale(0.99); background: var(--brand-50); }
+    .add-clinic-btn .material-symbols-outlined { font-size: 20px; }
 
     .field-block { margin-bottom: 16px; }
     .field-label { font-size: 12px; font-weight: 700; color: var(--gray-600); margin-bottom: 6px; letter-spacing: 0.5px; }
@@ -72,7 +81,6 @@
     }
     .field-textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
 
-    /* 入力ボタン群（録音・写真・AI） */
     .input-tools { display: flex; gap: 8px; margin: 8px 0 4px; flex-wrap: wrap; }
     .tool-btn {
       display: inline-flex; align-items: center; gap: 6px;
@@ -94,12 +102,9 @@
       50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
     }
 
-    .photos-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;
-    }
+    .photos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
     .photo-thumb {
-      aspect-ratio: 1; border-radius: 8px; background: var(--gray-100); position: relative;
-      overflow: hidden;
+      aspect-ratio: 1; border-radius: 8px; background: var(--gray-100); position: relative; overflow: hidden;
     }
     .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
     .photo-thumb .remove {
@@ -123,13 +128,31 @@
       cursor: pointer;
     }
 
-    /* 確認ペイン */
     .review-card {
       background: var(--white); border: 2px solid var(--gray-200); border-radius: 12px;
       padding: 14px 16px; margin-bottom: 10px;
     }
     .review-card .label { font-size: 11px; font-weight: 700; color: var(--gray-500); letter-spacing: 1px; }
     .review-card .value { font-size: 15px; margin-top: 4px; line-height: 1.6; white-space: pre-wrap; }
+
+    /* 体調メモタブ */
+    .self-pane { padding: 24px 16px; display: none; }
+    .self-pane.active { display: block; }
+    .self-lead {
+      font-size: 14px; color: var(--gray-700); line-height: 1.7; margin-bottom: 16px;
+      padding: 14px; background: #f0f9ff; border-radius: 12px; border-left: 4px solid #0284c7;
+    }
+    .self-voice-btn {
+      width: 100%; padding: 22px; border-radius: 18px; border: 2px solid #bae6fd;
+      background: #f0f9ff; color: #0284c7; font-size: 17px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      cursor: pointer; transition: all 0.15s; letter-spacing: 1.5px; margin-bottom: 14px;
+    }
+    .self-voice-btn:active { transform: scale(0.98); }
+    .self-voice-btn.recording { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+    .self-voice-btn .material-symbols-outlined { font-size: 28px; }
+    .self-or { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--gray-400); font-size: 12px; }
+    .self-or::before, .self-or::after { content: ""; flex: 1; height: 1px; background: var(--gray-200); }
 
     /* フッター */
     .nav-footer {
@@ -169,92 +192,148 @@
     <h1 id="header-title">きろくする</h1>
   </div>
 
-  <div class="progress-bar" id="progress-bar"></div>
+  <!-- 底部タブ（受診/体調） -->
+  <div class="record-tabs">
+    <button class="record-tab active" data-tab="visit">受診の記録</button>
+    <button class="record-tab" data-tab="self">体調メモ</button>
+  </div>
 
-  <!-- Step 1: どこで -->
-  <div class="pane" id="pane-1">
-    <div class="pane-title">どこで受診した？</div>
-    <div class="pane-sub">かかりつけ病院と診療科を選んでください。</div>
+  <!-- ===== 受診の記録タブ ===== -->
+  <div id="visit-tab">
+    <div class="progress-bar" id="progress-bar"></div>
 
-    <div class="field-block">
-      <div class="field-label">受診日</div>
-      <input type="date" id="visit-date" class="field-input">
+    <!-- Step 1: どこで -->
+    <div class="pane" id="pane-1">
+      <div class="pane-title">どこで受診した？</div>
+      <div class="pane-sub">かかりつけ病院と診療科を選んでください。</div>
+
+      <div class="field-block">
+        <div class="field-label">受診日</div>
+        <input type="date" id="visit-date" class="field-input">
+      </div>
+
+      <div id="clinic-list">
+        <div class="loading"><div class="loading-spinner"></div><p class="mt-8 text-sm text-muted">読み込み中...</p></div>
+      </div>
+
+      <a class="add-clinic-btn" id="add-clinic-btn" href="/simple/clinics.html">
+        <span class="material-symbols-outlined">add</span>
+        新しい病院・クリニックを追加
+      </a>
     </div>
 
-    <div id="clinic-list">
-      <div class="loading"><div class="loading-spinner"></div><p class="mt-8 text-sm text-muted">読み込み中...</p></div>
+    <!-- Step 2: なに言われた -->
+    <div class="pane" id="pane-2">
+      <div class="pane-title">なに言われた？</div>
+      <div class="pane-sub">医師から言われたことを書いてください。音声で話したり、処方箋・検査結果の写真を添付してもOKです。</div>
+
+      <div class="field-block">
+        <div class="field-label">言われたこと</div>
+        <textarea id="raw-text" class="field-textarea" placeholder="例: VEGFは正常範囲、レブラミドは続けて、3ヶ月後に再診..."></textarea>
+        <div class="input-tools">
+          <button class="tool-btn" id="btn-record">
+            <span class="material-symbols-outlined">mic</span>
+            <span class="btn-label">録音</span>
+          </button>
+          <label class="tool-btn" for="photo-input">
+            <span class="material-symbols-outlined">add_a_photo</span>
+            写真を追加
+          </label>
+          <input type="file" id="photo-input" accept="image/*" capture="environment" multiple style="display:none">
+          <button class="tool-btn ai" id="btn-ai-format">
+            <span class="material-symbols-outlined">auto_fix_high</span>
+            AIで整える
+          </button>
+        </div>
+        <div class="ai-notice">AIは入力を整えるだけです。診断や治療方針は判断しません。</div>
+        <div class="photos-grid" id="photos-grid"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: つぎは -->
+    <div class="pane" id="pane-3">
+      <div class="pane-title">つぎは？</div>
+      <div class="pane-sub">次回までにすること（薬の飲み方・予約・気をつけることなど）を書いてください。</div>
+
+      <div class="field-block">
+        <div class="field-label">次回までにすること</div>
+        <textarea id="next-action" class="field-textarea" placeholder="例: 血液検査の予約を取る、レブラミドを毎日飲む..."></textarea>
+        <div class="input-tools">
+          <button class="tool-btn" id="btn-record-2">
+            <span class="material-symbols-outlined">mic</span>
+            <span class="btn-label">録音</span>
+          </button>
+        </div>
+        <div class="suggestion-chips" id="suggestion-chips"></div>
+      </div>
+
+      <div class="field-block">
+        <div class="field-label">次回の受診予定（任意）</div>
+        <input type="date" id="next-visit-date" class="field-input">
+      </div>
+    </div>
+
+    <!-- Step 4: 確認 -->
+    <div class="pane" id="pane-4">
+      <div class="pane-title">この内容で記録しますか？</div>
+      <div class="pane-sub">あとから編集もできます。</div>
+      <div id="review-list"></div>
+    </div>
+
+    <!-- 完了 -->
+    <div class="pane" id="pane-done">
+      <div class="done-screen">
+        <div class="done-icon"><span class="material-symbols-outlined">check</span></div>
+        <div class="pane-title">記録しました</div>
+        <div class="pane-sub">タイムラインにも追加されています。</div>
+        <div class="done-actions">
+          <button class="primary" id="btn-record-another">もう一件記録する</button>
+          <a class="secondary" id="link-home" href="/simple/">ホームに戻る</a>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Step 2: なに言われた -->
-  <div class="pane" id="pane-2">
-    <div class="pane-title">なに言われた？</div>
-    <div class="pane-sub">医師から言われたことを書いてください。音声で話したり、処方箋・検査結果の写真を添付してもOKです。</div>
+  <!-- ===== 体調メモタブ ===== -->
+  <div id="self-tab">
+    <!-- 入力 -->
+    <div class="self-pane active" id="self-entry">
+      <div class="pane-title" style="padding:24px 16px 0;">いまの体調を記録</div>
+      <div class="pane-sub" style="padding:0 16px;">受診の予定がない日でも、体調や気になることを残しておけます。</div>
+      <div style="padding:0 16px;">
+        <div class="self-lead">
+          記録は<strong>タイムラインに「じぶんメモ」</strong>として残ります。<br>
+          受診の時に「みせる」画面で、医師に体調の経過を見せられます。
+        </div>
 
-    <div class="field-block">
-      <div class="field-label">言われたこと（findings）</div>
-      <textarea id="raw-text" class="field-textarea" placeholder="例: VEGFは正常範囲、レブラミドは続けて、3ヶ月後に再診..."></textarea>
-      <div class="input-tools">
-        <button class="tool-btn" id="btn-record">
+        <div class="field-block">
+          <div class="field-label">記録日</div>
+          <input type="date" id="self-date" class="field-input">
+        </div>
+
+        <button class="self-voice-btn" id="self-voice-btn">
           <span class="material-symbols-outlined">mic</span>
-          <span class="btn-label">録音</span>
+          <span id="self-voice-label">音声で記録する</span>
         </button>
-        <label class="tool-btn" for="photo-input">
-          <span class="material-symbols-outlined">add_a_photo</span>
-          写真を追加
-        </label>
-        <input type="file" id="photo-input" accept="image/*" capture="environment" multiple style="display:none">
-        <button class="tool-btn ai" id="btn-ai-format">
-          <span class="material-symbols-outlined">auto_fix_high</span>
-          AIで整える
-        </button>
-      </div>
-      <div class="ai-notice">AIは入力を整えるだけです。診断や治療方針は判断しません。</div>
-      <div class="photos-grid" id="photos-grid"></div>
-    </div>
-  </div>
 
-  <!-- Step 3: つぎは -->
-  <div class="pane" id="pane-3">
-    <div class="pane-title">つぎは？</div>
-    <div class="pane-sub">次回までにすること（薬の飲み方・予約・気をつけることなど）を書いてください。</div>
+        <div class="self-or">または書いて記録</div>
 
-    <div class="field-block">
-      <div class="field-label">次回までにすること（nextAction）</div>
-      <textarea id="next-action" class="field-textarea" placeholder="例: 血液検査の予約を取る、レブラミドを毎日飲む..."></textarea>
-      <div class="input-tools">
-        <button class="tool-btn" id="btn-record-2">
-          <span class="material-symbols-outlined">mic</span>
-          <span class="btn-label">録音</span>
-        </button>
+        <textarea id="self-text" class="field-textarea" placeholder="例: 今日は朝から手のしびれが少し強かった。歩行は問題なし。&#10;夕方には楽になった。"></textarea>
+
+        <div class="ai-notice" id="self-status" style="display:none;"></div>
       </div>
-      <div class="suggestion-chips" id="suggestion-chips"></div>
     </div>
 
-    <div class="field-block">
-      <div class="field-label">次回の受診予定（任意）</div>
-      <input type="date" id="next-visit-date" class="field-input">
-    </div>
-  </div>
-
-  <!-- Step 4: 確認 -->
-  <div class="pane" id="pane-4">
-    <div class="pane-title">この内容で記録しますか？</div>
-    <div class="pane-sub">あとから編集もできます。</div>
-    <div id="review-list"></div>
-  </div>
-
-  <!-- 完了 -->
-  <div class="pane" id="pane-done">
-    <div class="done-screen">
-      <div class="done-icon">
-        <span class="material-symbols-outlined">check</span>
-      </div>
-      <div class="pane-title">記録しました</div>
-      <div class="pane-sub">タイムラインにも追加されています。</div>
-      <div class="done-actions">
-        <button class="primary" id="btn-record-another">もう一件記録する</button>
-        <a class="secondary" id="link-home" href="/simple/">ホームに戻る</a>
+    <!-- 完了 -->
+    <div class="self-pane" id="self-done">
+      <div class="done-screen">
+        <div class="done-icon" style="background:#dbeafe;"><span class="material-symbols-outlined" style="color:#0284c7;">check</span></div>
+        <div class="pane-title">記録しました</div>
+        <div class="pane-sub">タイムラインに「じぶんメモ」として残ります。</div>
+        <div class="done-actions">
+          <button class="primary" id="self-another-btn" style="background:#0284c7;">もう一件記録する</button>
+          <a class="secondary" id="self-home-btn" href="/simple/">ホームに戻る</a>
+        </div>
       </div>
     </div>
   </div>
@@ -269,42 +348,50 @@
   <script src="/js/liff-init.js"></script>
   <script src="/js/visit-recorder.js"></script>
   <script>
+    /* ============ タブ切替 ============ */
+    let activeTab = "visit"; // "visit" | "self"
+    function setActiveTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll(".record-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+      document.getElementById("visit-tab").style.display = tab === "visit" ? "" : "none";
+      document.getElementById("self-tab").style.display = tab === "self" ? "" : "none";
+      // フッター(つぎへ/もどる) は受診タブのみ
+      document.getElementById("nav-footer").style.display = (tab === "visit" && !document.getElementById("pane-done").classList.contains("active")) ? "flex" : "none";
+      // 体調タブはもう一件モードのときフッター不要
+      if (tab === "self") {
+        // self-entry状態なら底部に保存ボタン (フッターを使い回す)
+        if (document.getElementById("self-entry").classList.contains("active")) {
+          document.getElementById("nav-footer").style.display = "flex";
+          document.getElementById("btn-prev").style.visibility = "hidden";
+          document.getElementById("btn-next").textContent = "保存する";
+        } else {
+          document.getElementById("nav-footer").style.display = "none";
+        }
+      }
+      window.scrollTo(0, 0);
+      // どちらのモードにいたか保存
+      localStorage.setItem("yorisoi_record_mode", tab);
+    }
+
+    /* ============ 受診ウィザード ============ */
     const TOTAL_STEPS = 4;
     const DRAFT_KEY = "yorisoi_visit_draft";
     let currentStep = 1;
     let clinics = [];
     let draft = {
       date: new Date().toISOString().slice(0, 10),
-      clinicId: null,
-      clinicName: null,
-      department: null,
-      rawText: "",
-      findings: "",
-      nextActionDraft: "",
-      nextAction: "",
+      clinicId: null, clinicName: null, department: null,
+      rawText: "", findings: "",
+      nextActionDraft: "", nextAction: "",
       nextVisitDate: null,
       suggestions: { medicationChange: false, newLab: false, newProcedure: false },
       photos: [],
     };
 
-    function escHTML(s) {
-      const d = document.createElement("div");
-      d.textContent = s || "";
-      return d.innerHTML;
-    }
-
-    function loadDraft() {
-      const saved = sessionStorage.getItem(DRAFT_KEY);
-      if (saved) {
-        try { Object.assign(draft, JSON.parse(saved)); } catch (e) {}
-      }
-    }
-    function saveDraft() {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-    }
-    function clearDraft() {
-      sessionStorage.removeItem(DRAFT_KEY);
-    }
+    function escHTML(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+    function loadDraft() { const saved = sessionStorage.getItem(DRAFT_KEY); if (saved) { try { Object.assign(draft, JSON.parse(saved)); } catch (e) {} } }
+    function saveDraft() { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); }
+    function clearDraft() { sessionStorage.removeItem(DRAFT_KEY); }
 
     function renderProgress() {
       const bar = document.getElementById("progress-bar");
@@ -317,7 +404,7 @@
     }
 
     function showPane(step) {
-      document.querySelectorAll(".pane").forEach((p) => p.classList.remove("active"));
+      document.querySelectorAll("#visit-tab .pane").forEach((p) => p.classList.remove("active"));
       const id = step === "done" ? "pane-done" : `pane-${step}`;
       document.getElementById(id).classList.add("active");
       currentStep = step === "done" ? TOTAL_STEPS : step;
@@ -328,37 +415,28 @@
     }
 
     function updateNav() {
+      if (activeTab !== "visit") return;
       const footer = document.getElementById("nav-footer");
       const prev = document.getElementById("btn-prev");
       const next = document.getElementById("btn-next");
-      if (document.getElementById("pane-done").classList.contains("active")) {
-        footer.style.display = "none";
-        return;
-      }
+      if (document.getElementById("pane-done").classList.contains("active")) { footer.style.display = "none"; return; }
       footer.style.display = "flex";
       prev.style.visibility = currentStep === 1 ? "hidden" : "visible";
-      if (currentStep === TOTAL_STEPS) {
-        next.textContent = "保存する";
-      } else {
-        next.textContent = "つぎへ";
-      }
+      next.textContent = currentStep === TOTAL_STEPS ? "保存する" : "つぎへ";
     }
 
     function canAdvance() {
       if (currentStep === 1) return draft.clinicId && draft.department;
-      // Step 2/3 は空欄でも許容（あとから編集できる）
       return true;
     }
 
-    // === Step 1: クリニック選択 ===
     async function loadClinics() {
       try {
         clinics = await apiGet("/api/clinics");
         renderClinicList();
       } catch (err) {
         console.error("load clinics error:", err);
-        document.getElementById("clinic-list").innerHTML =
-          '<p class="text-sm" style="color:var(--danger);text-align:center;">読み込みに失敗しました</p>';
+        document.getElementById("clinic-list").innerHTML = '<p class="text-sm" style="color:var(--danger);text-align:center;">読み込みに失敗しました</p>';
       }
     }
 
@@ -369,7 +447,6 @@
           <div class="empty-clinic">
             <span class="material-symbols-outlined">local_hospital</span>
             <p class="mt-8 text-sm">かかりつけ病院がまだ登録されていません</p>
-            <a class="empty-clinic-cta" href="/simple/clinics.html${location.search}">かかりつけを登録する</a>
           </div>`;
         return;
       }
@@ -384,7 +461,6 @@
         </div>
       `).join("");
       root.innerHTML = html;
-      // 診療科チップにイベント
       root.querySelectorAll(".dept-chip").forEach((chip) => {
         chip.addEventListener("click", () => {
           const cid = chip.dataset.clinicId;
@@ -399,17 +475,13 @@
       });
     }
 
-    // === ペインがアクティブになる時に値を反映 ===
     function syncPaneToDraft() {
-      // Step1
       document.getElementById("visit-date").value = draft.date;
-      // Step2 — findings が AI整形済みなら textarea にも反映し draft.rawText も合わせる
       const rt = document.getElementById("raw-text");
       const rtValue = draft.rawText || draft.findings || "";
       rt.value = rtValue;
       if (rtValue && !draft.rawText) { draft.rawText = rtValue; saveDraft(); }
       renderPhotosGrid();
-      // Step3 — nextActionDraft を初期値にしたとき draft.nextAction にも同期
       const na = document.getElementById("next-action");
       const naValue = draft.nextAction || draft.nextActionDraft || "";
       na.value = naValue;
@@ -452,7 +524,6 @@
       });
     }
 
-    // === Step 2: 録音・写真・AI ===
     async function toggleRecord(buttonId, targetTextareaId) {
       const btn = document.getElementById(buttonId);
       const ta = document.getElementById(targetTextareaId);
@@ -489,10 +560,7 @@
     async function aiFormat() {
       const ta = document.getElementById("raw-text");
       const text = ta.value.trim();
-      if (!text) {
-        alert("先に内容を入力してください");
-        return;
-      }
+      if (!text) { alert("先に内容を入力してください"); return; }
       const btn = document.getElementById("btn-ai-format");
       btn.classList.add("busy");
       btn.querySelector(".material-symbols-outlined").textContent = "hourglass_top";
@@ -503,10 +571,8 @@
         draft.nextActionDraft = result.nextActionDraft || "";
         draft.nextVisitDate = result.nextVisitDate || null;
         draft.suggestions = result.suggestions || draft.suggestions;
-        // textarea を整形版で置き換え
         ta.value = draft.findings;
         saveDraft();
-        // フィードバック
         btn.querySelector(".material-symbols-outlined").textContent = "check";
         setTimeout(() => {
           btn.classList.remove("busy");
@@ -522,18 +588,13 @@
 
     async function addPhotos(files) {
       for (const f of files) {
-        try {
-          const dataUri = await VisitRecorder.fileToDataUri(f);
-          draft.photos.push(dataUri);
-        } catch (err) {
-          console.error("photo error:", err);
-        }
+        try { const dataUri = await VisitRecorder.fileToDataUri(f); draft.photos.push(dataUri); }
+        catch (err) { console.error("photo error:", err); }
       }
       saveDraft();
       renderPhotosGrid();
     }
 
-    // === 確認ペイン ===
     function renderReview() {
       const root = document.getElementById("review-list");
       const items = [
@@ -558,41 +619,29 @@
       root.innerHTML = html;
     }
 
-    // === 保存 ===
     async function saveVisit() {
       const next = document.getElementById("btn-next");
       next.disabled = true;
       next.textContent = "保存中...";
       try {
-        // 1. POST /api/visits
         const visit = await apiPost("/api/visits", {
-          date: draft.date,
-          clinicId: draft.clinicId,
-          department: draft.department,
+          date: draft.date, clinicId: draft.clinicId, department: draft.department,
           chiefComplaint: "",
           findings: draft.findings || draft.rawText || "",
           nextAction: draft.nextAction || "",
           photos: draft.photos,
-          relatedMedicationIds: [],
-          relatedLabResultIds: [],
+          relatedMedicationIds: [], relatedLabResultIds: [],
           relatedTimelineEventId: null,
         });
-
-        // 2. POST /api/timeline (category="visit")
         const findingsExcerpt = (draft.findings || draft.rawText || "").slice(0, 200);
         const event = await apiPost("/api/timeline", {
-          date: draft.date,
-          category: "visit",
+          date: draft.date, category: "visit",
           title: `${draft.clinicName} ${draft.department} 受診`,
-          detail: findingsExcerpt,
-          source: "manual",
+          detail: findingsExcerpt, source: "manual",
         });
-
-        // 3. PUT /api/visits/{id} で relatedTimelineEventId を更新
         if (event && event.id) {
           await apiPut(`/api/visits/${visit.id}`, { relatedTimelineEventId: event.id });
         }
-
         clearDraft();
         showPane("done");
       } catch (err) {
@@ -603,79 +652,162 @@
       }
     }
 
-    // === 入力イベント (textarea/input → draft 同期) ===
+    /* ============ 体調メモ ============ */
+    let selfRecording = false;
+    function showSelfPane(name) {
+      document.querySelectorAll(".self-pane").forEach(p => p.classList.remove("active"));
+      document.getElementById("self-" + name).classList.add("active");
+      // entry なら保存ボタン表示
+      if (name === "entry") {
+        document.getElementById("nav-footer").style.display = "flex";
+        document.getElementById("btn-prev").style.visibility = "hidden";
+        document.getElementById("btn-next").textContent = "保存する";
+      } else {
+        document.getElementById("nav-footer").style.display = "none";
+      }
+      window.scrollTo(0, 0);
+    }
+
+    async function onSelfVoiceClick() {
+      const btn = document.getElementById("self-voice-btn");
+      const label = document.getElementById("self-voice-label");
+      const status = document.getElementById("self-status");
+      try {
+        if (!selfRecording) {
+          await VisitRecorder.startRecording();
+          selfRecording = true;
+          btn.classList.add("recording");
+          label.textContent = "録音中...タップして停止";
+          status.style.display = "none";
+        } else {
+          label.textContent = "書き起こし中...";
+          btn.disabled = true;
+          const blob = await VisitRecorder.stopRecording();
+          selfRecording = false;
+          btn.classList.remove("recording");
+          const result = await VisitRecorder.transcribeBlob(blob);
+          const ta = document.getElementById("self-text");
+          const transcript = (result.transcript || "").trim();
+          if (transcript) {
+            ta.value = ta.value ? (ta.value + "\n" + transcript) : transcript;
+          } else {
+            status.style.display = "block";
+            status.style.color = "var(--danger)";
+            status.textContent = "音声がうまく聞き取れませんでした。もう一度お試しください。";
+          }
+          label.textContent = "音声で記録する";
+          btn.disabled = false;
+        }
+      } catch (err) {
+        console.error(err);
+        selfRecording = false;
+        btn.classList.remove("recording");
+        btn.disabled = false;
+        label.textContent = "音声で記録する";
+        status.style.display = "block";
+        status.style.color = "var(--danger)";
+        status.textContent = "録音に失敗しました: " + (err.message || err);
+      }
+    }
+
+    async function saveSelfLog() {
+      const text = document.getElementById("self-text").value.trim();
+      const date = document.getElementById("self-date").value;
+      const status = document.getElementById("self-status");
+      if (!text) { status.style.display = "block"; status.style.color = "var(--danger)"; status.textContent = "体調メモを入力してください"; return; }
+      if (!date) { status.style.display = "block"; status.style.color = "var(--danger)"; status.textContent = "記録日を入力してください"; return; }
+      const btn = document.getElementById("btn-next");
+      btn.disabled = true;
+      btn.textContent = "保存中...";
+      try {
+        const title = text.slice(0, 30) + (text.length > 30 ? "…" : "");
+        await apiPost("/api/timeline", { date, category: "self-log", title, detail: text, source: "self-log" });
+        showSelfPane("done");
+        document.getElementById("self-text").value = "";
+        status.style.display = "none";
+      } catch (err) {
+        status.style.display = "block";
+        status.style.color = "var(--danger)";
+        status.textContent = "保存に失敗しました: " + (err.message || err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "保存する";
+      }
+    }
+
+    /* ============ イベント設定 ============ */
     function attachInputs() {
-      document.getElementById("visit-date").addEventListener("change", (e) => {
-        draft.date = e.target.value; saveDraft();
-      });
+      // タブ切替
+      document.querySelectorAll(".record-tab").forEach((t) => t.addEventListener("click", () => setActiveTab(t.dataset.tab)));
+
+      // 受診タブ - 入力イベント
+      document.getElementById("visit-date").addEventListener("change", (e) => { draft.date = e.target.value; saveDraft(); });
       document.getElementById("raw-text").addEventListener("input", (e) => {
-        draft.rawText = e.target.value;
-        if (!draft.findings) draft.findings = e.target.value;
-        else draft.findings = e.target.value; // 直接編集 = findings として扱う
-        saveDraft();
+        draft.rawText = e.target.value; draft.findings = e.target.value; saveDraft();
       });
-      document.getElementById("next-action").addEventListener("input", (e) => {
-        draft.nextAction = e.target.value; saveDraft();
-      });
-      document.getElementById("next-visit-date").addEventListener("change", (e) => {
-        draft.nextVisitDate = e.target.value || null; saveDraft();
-      });
-      document.getElementById("photo-input").addEventListener("change", (e) => {
-        addPhotos(Array.from(e.target.files));
-        e.target.value = "";
-      });
+      document.getElementById("next-action").addEventListener("input", (e) => { draft.nextAction = e.target.value; saveDraft(); });
+      document.getElementById("next-visit-date").addEventListener("change", (e) => { draft.nextVisitDate = e.target.value || null; saveDraft(); });
+      document.getElementById("photo-input").addEventListener("change", (e) => { addPhotos(Array.from(e.target.files)); e.target.value = ""; });
       document.getElementById("btn-record").addEventListener("click", () => toggleRecord("btn-record", "raw-text"));
       document.getElementById("btn-record-2").addEventListener("click", () => toggleRecord("btn-record-2", "next-action"));
       document.getElementById("btn-ai-format").addEventListener("click", aiFormat);
 
+      // 受診タブ - フッター
       document.getElementById("btn-prev").addEventListener("click", () => {
-        if (currentStep > 1) {
-          showPane(currentStep - 1);
-          syncPaneToDraft();
-        }
+        if (activeTab === "visit" && currentStep > 1) { showPane(currentStep - 1); syncPaneToDraft(); }
       });
       document.getElementById("btn-next").addEventListener("click", () => {
+        if (activeTab === "self") { saveSelfLog(); return; }
         if (!canAdvance()) {
           if (currentStep === 1) alert("病院と診療科を選んでください");
           return;
         }
-        if (currentStep === TOTAL_STEPS) {
-          saveVisit();
-          return;
-        }
+        if (currentStep === TOTAL_STEPS) { saveVisit(); return; }
         showPane(currentStep + 1);
         syncPaneToDraft();
-        if (currentStep === TOTAL_STEPS) renderReview();
       });
 
-      document.getElementById("header-back").addEventListener("click", () => {
-        location.href = "/simple/" + location.search;
-      });
-
+      // 戻る・完了画面
+      document.getElementById("header-back").addEventListener("click", () => { location.href = "/simple/" + location.search; });
       document.getElementById("btn-record-another").addEventListener("click", () => {
-        // ドラフト初期化して Step1 へ
         Object.assign(draft, {
           date: new Date().toISOString().slice(0, 10),
           clinicId: null, clinicName: null, department: null,
           rawText: "", findings: "", nextActionDraft: "",
           nextAction: "", nextVisitDate: null,
-          suggestions: { medicationChange: false, newLab: false, newProcedure: false },
-          photos: [],
+          suggestions: { medicationChange: false, newLab: false, newProcedure: false }, photos: [],
         });
-        clearDraft();
-        showPane(1);
-        syncPaneToDraft();
-        renderClinicList();
+        clearDraft(); showPane(1); syncPaneToDraft(); renderClinicList();
       });
       document.getElementById("link-home").href = "/simple/" + location.search;
+
+      // 体調メモタブ
+      document.getElementById("self-voice-btn").addEventListener("click", onSelfVoiceClick);
+      document.getElementById("self-another-btn").addEventListener("click", () => {
+        document.getElementById("self-date").value = new Date().toISOString().slice(0, 10);
+        showSelfPane("entry");
+      });
+      document.getElementById("self-home-btn").href = "/simple/" + location.search;
+
+      // クリニック追加リンクに disease クエリ
+      const q = location.search;
+      document.getElementById("add-clinic-btn").href = "/simple/clinics.html" + q;
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
       try { await initLiff(); } catch (_) {}
+      // self-date 初期化
+      document.getElementById("self-date").value = new Date().toISOString().slice(0, 10);
       loadDraft();
       attachInputs();
       syncPaneToDraft();
       showPane(1);
+      // タブ初期値: URL パラメータ ?tab=self / ?tab=visit が優先、次に localStorage
+      const urlTab = new URLSearchParams(location.search).get("tab");
+      const stored = localStorage.getItem("yorisoi_record_mode");
+      const initialTab = (urlTab === "self" || urlTab === "visit") ? urlTab : (stored === "self" ? "self" : "visit");
+      setActiveTab(initialTab);
+      if (initialTab === "self") showSelfPane("entry");
       await loadClinics();
     });
   </script>
