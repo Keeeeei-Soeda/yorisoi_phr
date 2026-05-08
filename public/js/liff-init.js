@@ -44,8 +44,12 @@ async function initLiff() {
   // テンプレート読み込み
   _template = await apiGet(`/api/config?disease=${_diseaseId}`);
 
-  // 詳細モード画面 (/simple/ 配下以外) で簡単モード文脈なら、ヘッダーに「←かんたんに戻る」を差し込む
-  if (!location.pathname.startsWith("/simple/")) {
+  // 詳細サブ画面（/simple/ や / や /setup.html を除く）に「← ホームに戻る」バッジを差し込む
+  const p = location.pathname;
+  const isHome = p === "/" || p === "/index.html";
+  const isSimplePath = p.startsWith("/simple/");
+  const isSetup = p === "/setup.html";
+  if (!isHome && !isSimplePath && !isSetup) {
     try { attachSimpleBackBadge(); } catch (_) {}
   }
 
@@ -158,34 +162,26 @@ function escapeHtml(str) {
 }
 
 /**
- * 戻り先 URL を判定する。
- * - URL クエリ ?from=simple または現在モードが simple なら /simple/ に戻る
- * - それ以外（くわしいモードでアクセス中）は / （詳細モードホーム）に戻る
+ * 簡単モードのホーム ("/") への戻り URL を返す。
  * disease クエリは引き継ぐ。
  */
 function getBackHref() {
   const params = new URLSearchParams(location.search);
-  const from = params.get("from");
-  const isSimpleContext = from === "simple" || getCurrentMode() === "simple";
   const disease = params.get("disease") || _diseaseId || localStorage.getItem("yorisoi_disease");
-  const q = disease ? "?disease=" + encodeURIComponent(disease) + (isSimpleContext ? "&from=simple" : "") : "";
-  return (isSimpleContext ? "/simple/" : "/") + (isSimpleContext ? q.replace("&from=simple","") : q);
+  const q = disease ? "?disease=" + encodeURIComponent(disease) : "";
+  return "/" + q;
 }
 
 /**
- * 詳細モード画面のヘッダーに「← かんたんに戻る」バッジを差し込む。
- * 簡単モード文脈のとき（?from=simple または getCurrentMode()==='simple'）のみ表示。
+ * 詳細サブ画面（timeline, lab-tracker など）のヘッダーに「← ホームに戻る」バッジを差し込む。
+ * /simple/* と / は除外（initLiff 内ですでに pathname 判定済）。
  */
 function attachSimpleBackBadge() {
-  const params = new URLSearchParams(location.search);
-  const from = params.get("from");
-  const isSimpleContext = from === "simple" || getCurrentMode() === "simple";
-  if (!isSimpleContext) return;
-  // 既存の戻るボタンを置き換える
+  // 既存の戻るボタンをホームへ向ける
   const back = document.querySelector(".header-back");
   if (back) {
     back.innerHTML = "←";
-    back.title = "かんたんモードに戻る";
+    back.title = "ホームに戻る";
     back.onclick = () => { location.href = getBackHref(); };
   }
   // ヘッダーにバッジを追加
@@ -195,7 +191,7 @@ function attachSimpleBackBadge() {
     badge.className = "simple-mode-badge";
     badge.href = getBackHref();
     badge.style.cssText = "margin-left:auto; padding:4px 10px; background:rgba(255,255,255,0.2); color:#fff; font-size:11px; border-radius:12px; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px;";
-    badge.innerHTML = "← かんたんに戻る";
+    badge.innerHTML = "← ホームに戻る";
     header.appendChild(badge);
   }
 }

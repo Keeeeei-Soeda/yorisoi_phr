@@ -205,7 +205,7 @@
       if (template?.color) document.querySelector(".page-header").style.background = `linear-gradient(135deg, ${template.color}, ${template.color}dd)`;
 
       const q = "?disease=" + encodeURIComponent(ctx.diseaseId);
-      document.getElementById("back-btn").onclick = () => location.href = "/simple/" + q;
+      document.getElementById("back-btn").onclick = () => location.href = "/" + q;
 
       // タブ切替
       document.querySelectorAll(".tab").forEach((tab) => {

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>よりそい PHR</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .settings-btn {
+      background: none; border: none; color: var(--white); font-size: 20px; cursor: pointer; padding: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header" id="main-header">
+    <h1 id="header-title">よりそい PHR</h1>
+    <a href="/setup.html" class="settings-btn" title="設定">&#9881;</a>
+  </div>
+
+  <div class="content">
+    <!-- プロフィール概要 -->
+    <div class="card" id="profile-card">
+      <p class="text-sm text-muted">読み込み中...</p>
+    </div>
+
+    <!-- メニュー（テンプレートから動的生成） -->
+    <div class="menu-grid" id="menu-grid"></div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 初回セットアップ未完了ならリダイレクト
+      if (!localStorage.getItem("yorisoi_setup_done") && !new URLSearchParams(location.search).get("disease")) {
+        location.href = "/setup.html";
+        return;
+      }
+
+      // 簡単モード時はランディングへリダイレクト（クエリ維持）
+      if (getCurrentMode() === "simple") {
+        const search = location.search || "";
+        location.replace("/simple/" + search);
+        return;
+      }
+
+      try {
+        const { template } = await initLiff();
+
+        // ヘッダー色をテンプレートに合わせる
+        if (template.color) {
+          document.getElementById("main-header").style.background =
+            `linear-gradient(135deg, ${template.color}, ${template.color}dd)`;
+        }
+        document.getElementById("header-title").textContent = template.name || "よりそい PHR";
+
+        // プロフィール表示
+        const profile = await apiGet("/api/profile");
+        const card = document.getElementById("profile-card");
+        if (profile) {
+          card.innerHTML = `
+            <div class="card-title">${escapeHtml(profile.diagnosisName || template.name)}</div>
+            <p class="text-sm text-muted mt-8">
+              ${profile.diagnosisDate ? "診断日: " + formatDate(profile.diagnosisDate) : ""}
+            </p>`;
+        } else {
+          card.innerHTML = `
+            <div class="card-title">${escapeHtml(template.name)}</div>
+            <p class="text-sm text-muted mt-8">まずは治療タイムラインから、あなたの治療歴を記録しましょう。</p>`;
+        }
+
+        // メニュー動的生成（ユーザーが選んだモジュールのみ表示）
+        renderMenuGridFiltered("menu-grid");
+
+      } catch (err) {
+        console.error("Init error:", err);
+        document.getElementById("profile-card").innerHTML =
+          '<p class="text-sm" style="color:var(--danger)">読み込みに失敗しました</p>';
+      }
+    });
+
+    function renderMenuGridFiltered(containerId) {
+      if (!_template || !_template.modules) return;
+      const container = document.getElementById(containerId);
+      const savedModules = JSON.parse(localStorage.getItem("yorisoi_modules") || "{}");
+      const enabledModules = _template.modules.filter((m) => {
+        if (m.core) return true;
+        if (Object.keys(savedModules).length > 0) return savedModules[m.id];
+        return m.enabled;
+      });
+
+      let html = "";
+      enabledModules.forEach((mod) => {
+        const fullWidth = mod.fullWidth ? ' style="grid-column: 1 / -1;"' : "";
+        html += `
+          <a href="/${mod.page}" class="menu-card"${fullWidth}>
+            <div class="menu-icon"><span class="material-symbols-outlined">${mod.icon}</span></div>
+            <div class="menu-label">${escapeHtml(mod.label)}</div>
+            <div class="menu-desc">${escapeHtml(mod.description)}</div>
+          </a>`;
+      });
+      container.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

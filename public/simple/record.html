@@ -288,7 +288,7 @@
         <div class="pane-sub">タイムラインにも追加されています。</div>
         <div class="done-actions">
           <button class="primary" id="btn-record-another">もう一件記録する</button>
-          <a class="secondary" id="link-home" href="/simple/">ホームに戻る</a>
+          <a class="secondary" id="link-home" href="/">ホームに戻る</a>
         </div>
       </div>
     </div>
@@ -332,7 +332,7 @@
         <div class="pane-sub">タイムラインに「じぶんメモ」として残ります。</div>
         <div class="done-actions">
           <button class="primary" id="self-another-btn" style="background:#0284c7;">もう一件記録する</button>
-          <a class="secondary" id="self-home-btn" href="/simple/">ホームに戻る</a>
+          <a class="secondary" id="self-home-btn" href="/">ホームに戻る</a>
         </div>
       </div>
     </div>
@@ -768,7 +768,7 @@
       });
 
       // 戻る・完了画面
-      document.getElementById("header-back").addEventListener("click", () => { location.href = "/simple/" + location.search; });
+      document.getElementById("header-back").addEventListener("click", () => { location.href = "/" + location.search; });
       document.getElementById("btn-record-another").addEventListener("click", () => {
         Object.assign(draft, {
           date: new Date().toISOString().slice(0, 10),
@@ -779,7 +779,7 @@
         });
         clearDraft(); showPane(1); syncPaneToDraft(); renderClinicList();
       });
-      document.getElementById("link-home").href = "/simple/" + location.search;
+      document.getElementById("link-home").href = "/" + location.search;
 
       // 体調メモタブ
       document.getElementById("self-voice-btn").addEventListener("click", onSelfVoiceClick);
@@ -787,7 +787,7 @@
         document.getElementById("self-date").value = new Date().toISOString().slice(0, 10);
         showSelfPane("entry");
       });
-      document.getElementById("self-home-btn").href = "/simple/" + location.search;
+      document.getElementById("self-home-btn").href = "/" + location.search;
 
       // クリニック追加リンクに disease クエリ
       const q = location.search;

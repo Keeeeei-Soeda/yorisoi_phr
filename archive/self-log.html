@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>いまの体調 - よりそい</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" />
+  <style>
+    body { background: var(--gray-50); padding: 0; }
+    .page-header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: var(--white);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .back-btn { background: none; border: none; color: var(--white); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+    .page-header h1 { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+
+    .content { padding: 20px; }
+    .panel { background: var(--white); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); }
+    .lead { font-size: 14px; color: var(--gray-700); line-height: 1.7; margin-bottom: 16px; }
+    .lead .em { color: #0284c7; font-weight: 700; }
+
+    .date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 13px; color: var(--gray-600); }
+    .date-row input[type="date"] {
+      padding: 6px 10px; border: 1.5px solid var(--gray-300); border-radius: 8px; font-size: 13px;
+    }
+
+    .voice-btn {
+      width: 100%; padding: 24px; border-radius: 18px; border: 2px solid #bae6fd;
+      background: #f0f9ff; color: #0284c7; font-size: 18px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      cursor: pointer; transition: all 0.15s; letter-spacing: 1.5px;
+    }
+    .voice-btn:active { transform: scale(0.98); }
+    .voice-btn.recording { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+    .voice-btn .material-symbols-outlined { font-size: 32px; }
+
+    .or-line { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--gray-400); font-size: 12px; }
+    .or-line::before, .or-line::after { content: ""; flex: 1; height: 1px; background: var(--gray-200); }
+
+    textarea {
+      width: 100%; min-height: 120px; padding: 12px;
+      border: 1.5px solid var(--gray-300); border-radius: 12px; font-size: 14px;
+      font-family: inherit; line-height: 1.6; resize: vertical;
+    }
+    textarea:focus { outline: none; border-color: #0284c7; }
+
+    .save-btn {
+      width: 100%; margin-top: 16px; padding: 16px;
+      background: #0284c7; color: #fff; border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 700; letter-spacing: 1.5px; cursor: pointer;
+    }
+    .save-btn:disabled { background: var(--gray-300); cursor: not-allowed; }
+    .save-btn:active { transform: scale(0.99); }
+
+    .status-msg { text-align: center; font-size: 13px; padding: 8px; margin-top: 8px; }
+    .status-msg.error { color: var(--danger); }
+    .status-msg.success { color: #059669; }
+
+    .done-card {
+      text-align: center; padding: 30px 16px;
+    }
+    .done-card .big-icon { font-size: 64px; color: #059669; }
+    .done-card h2 { font-size: 22px; margin-top: 8px; }
+    .done-card p { font-size: 13px; color: var(--gray-600); margin-top: 8px; }
+    .done-actions { display: flex; gap: 8px; margin-top: 20px; }
+    .done-actions a {
+      flex: 1; padding: 12px; text-align: center; text-decoration: none;
+      border-radius: 12px; font-size: 14px; font-weight: 700;
+    }
+    .done-actions .primary { background: #0284c7; color: #fff; }
+    .done-actions .secondary { background: var(--gray-100); color: var(--gray-700); }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <button class="back-btn" id="back-btn">&larr;</button>
+    <h1>いまの体調</h1>
+  </div>
+
+  <div class="content">
+    <div class="panel" id="entry-panel">
+      <p class="lead">
+        <span class="em">受診の予定がない日</span>でも、<br>
+        体調や気になることを残しておけます。<br>
+        音声でも書いてもOKです。
+      </p>
+
+      <div class="date-row">
+        <span class="material-symbols-outlined" style="font-size:18px;">today</span>
+        <span>記録日</span>
+        <input type="date" id="log-date" />
+      </div>
+
+      <button class="voice-btn" id="voice-btn">
+        <span class="material-symbols-outlined">mic</span>
+        <span id="voice-label">音声で記録する</span>
+      </button>
+
+      <div class="or-line">または書いて記録</div>
+
+      <textarea id="log-text" placeholder="例: 今日は朝から手のしびれが強かった。歩くのも少し疲れる。&#10;夜は楽になった。"></textarea>
+
+      <button class="save-btn" id="save-btn">保存する</button>
+      <div class="status-msg" id="status-msg"></div>
+    </div>
+
+    <div class="panel" id="done-panel" style="display:none;">
+      <div class="done-card">
+        <span class="material-symbols-outlined big-icon">check_circle</span>
+        <h2>記録しました</h2>
+        <p>タイムラインに「じぶんメモ」として残ります</p>
+        <div class="done-actions">
+          <a class="primary" href="#" id="another-btn">もう一件記録する</a>
+          <a class="secondary" id="home-btn" href="/simple/">ホームに戻る</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script src="/js/visit-recorder.js"></script>
+  <script>
+    let isRecording = false;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const ctx = await initLiff();
+      const q = "?disease=" + encodeURIComponent(ctx.diseaseId);
+      document.getElementById("back-btn").onclick = () => location.href = "/simple/" + q;
+      document.getElementById("home-btn").href = "/simple/" + q;
+
+      // 今日の日付を初期値に
+      const today = new Date().toISOString().slice(0, 10);
+      document.getElementById("log-date").value = today;
+
+      document.getElementById("voice-btn").addEventListener("click", onVoiceClick);
+      document.getElementById("save-btn").addEventListener("click", onSave);
+      document.getElementById("another-btn").addEventListener("click", (e) => {
+        e.preventDefault();
+        document.getElementById("entry-panel").style.display = "block";
+        document.getElementById("done-panel").style.display = "none";
+        document.getElementById("log-text").value = "";
+        document.getElementById("status-msg").textContent = "";
+        document.getElementById("log-date").value = new Date().toISOString().slice(0, 10);
+      });
+    });
+
+    async function onVoiceClick() {
+      const btn = document.getElementById("voice-btn");
+      const label = document.getElementById("voice-label");
+      const status = document.getElementById("status-msg");
+
+      try {
+        if (!isRecording) {
+          await VisitRecorder.startRecording();
+          isRecording = true;
+          btn.classList.add("recording");
+          label.textContent = "録音中...タップして停止";
+          status.textContent = "";
+        } else {
+          label.textContent = "書き起こし中...";
+          btn.disabled = true;
+          const blob = await VisitRecorder.stopRecording();
+          isRecording = false;
+          btn.classList.remove("recording");
+          const result = await VisitRecorder.transcribeBlob(blob);
+          const ta = document.getElementById("log-text");
+          const transcript = (result.transcript || "").trim();
+          if (transcript) {
+            ta.value = ta.value ? (ta.value + "\n" + transcript) : transcript;
+          } else {
+            status.className = "status-msg error";
+            status.textContent = "音声がうまく聞き取れませんでした。もう一度お試しください。";
+          }
+          label.textContent = "音声で記録する";
+          btn.disabled = false;
+        }
+      } catch (err) {
+        console.error(err);
+        isRecording = false;
+        btn.classList.remove("recording");
+        btn.disabled = false;
+        label.textContent = "音声で記録する";
+        status.className = "status-msg error";
+        status.textContent = "録音に失敗しました: " + (err.message || err);
+      }
+    }
+
+    async function onSave() {
+      const text = document.getElementById("log-text").value.trim();
+      const date = document.getElementById("log-date").value;
+      const status = document.getElementById("status-msg");
+
+      if (!text) { status.className = "status-msg error"; status.textContent = "体調メモを入力してください"; return; }
+      if (!date) { status.className = "status-msg error"; status.textContent = "記録日を入力してください"; return; }
+
+      const btn = document.getElementById("save-btn");
+      btn.disabled = true;
+      btn.textContent = "保存中...";
+
+      try {
+        const title = text.slice(0, 30) + (text.length > 30 ? "…" : "");
+        await apiPost("/api/timeline", {
+          date,
+          category: "self-log",
+          title,
+          detail: text,
+          source: "self-log",
+        });
+        document.getElementById("entry-panel").style.display = "none";
+        document.getElementById("done-panel").style.display = "block";
+      } catch (err) {
+        status.className = "status-msg error";
+        status.textContent = "保存に失敗しました: " + (err.message || err);
+        btn.disabled = false;
+        btn.textContent = "保存する";
+      }
+    }
+  </script>
+</body>
+</html>

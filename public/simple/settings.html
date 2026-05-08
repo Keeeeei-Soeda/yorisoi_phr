@@ -64,22 +64,11 @@
 </head>
 <body>
   <div class="header">
-    <button class="header-back" onclick="location.href='/simple/'+location.search">&larr;</button>
+    <button class="header-back" onclick="location.href='/'+location.search">&larr;</button>
     <h1>設定</h1>
   </div>
 
   <div class="content">
-
-    <div class="settings-section">
-      <div class="settings-section-title">表示モード</div>
-      <div class="mode-card">
-        <div class="mode-toggle" id="mode-toggle">
-          <button id="btn-simple" data-mode="simple">かんたん</button>
-          <button id="btn-detail" data-mode="detail">くわしい</button>
-        </div>
-        <div class="desc" id="mode-desc"></div>
-      </div>
-    </div>
 
     <div class="settings-section">
       <div class="settings-section-title">あなたの記録を見る</div>
@@ -154,45 +143,18 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
   <script src="/js/liff-init.js"></script>
   <script>
-    const MODE_DESC = {
-      simple: "「かんたん」モードは大きな3つのボタン（きろくする／ふりかえる／みせる）でシンプルに操作できます。",
-      detail: "「くわしい」モードはすべてのメニュー（症状記録・検査値・緊急カードなど）が表示されます。",
-    };
-
-    function applyToggleUI(mode) {
-      document.getElementById("btn-simple").classList.toggle("active", mode === "simple");
-      document.getElementById("btn-detail").classList.toggle("active", mode === "detail");
-      document.getElementById("mode-desc").textContent = MODE_DESC[mode] || "";
-    }
-
     document.addEventListener("DOMContentLoaded", async () => {
       try { await initLiff(); } catch (_) { /* デモモードでも動く */ }
 
-      const current = getCurrentMode();
-      applyToggleUI(current);
-
       // 全ての記録系リンクに ?disease=xxx&from=simple を付ける
-      const q = location.search ? (location.search + "&from=simple") : "?from=simple";
       ["link-meds","link-labs","link-symptom","link-emergency","link-resources","link-clinics","link-disease"].forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;
         const url = new URL(el.getAttribute("href"), location.origin);
-        // disease を引き継ぐ
         const disease = new URLSearchParams(location.search).get("disease");
         if (disease) url.searchParams.set("disease", disease);
         url.searchParams.set("from", "simple");
         el.setAttribute("href", url.pathname + "?" + url.searchParams.toString());
-      });
-
-      document.querySelectorAll("#mode-toggle button").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const newMode = btn.dataset.mode;
-          setMode(newMode);
-          applyToggleUI(newMode);
-          if (newMode === "detail") {
-            location.href = "/" + location.search;
-          }
-        });
       });
     });
   </script>
