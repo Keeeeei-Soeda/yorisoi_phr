@@ -630,6 +630,125 @@ ${rawText}
 });
 
 // ======================================================
+// POST /api/ai/parse-record
+// 「きろくする」の統合API: 原文から type(visit/self-log) を自動判別し、
+// それぞれに適した整理結果を返す
+// body: { rawText, diseaseId, currentDate?: "YYYY-MM-DD", knownClinics?: [{id, name, departments}] }
+// ======================================================
+router.post("/parse-record", async (req, res) => {
+  try {
+    const { rawText, diseaseId, currentDate, knownClinics } = req.body;
+    if (!rawText || typeof rawText !== "string") {
+      return res.status(400).json({ error: "rawText required" });
+    }
+
+    const tmpl = getTemplate(diseaseId || "uc");
+    const diseaseName = tmpl?.name || "";
+    const today = currentDate || new Date().toISOString().slice(0, 10);
+
+    const clinicsHint = Array.isArray(knownClinics) && knownClinics.length
+      ? "\n## 登録済みのかかりつけ病院（候補）\n" + knownClinics.map((c, i) =>
+          `${i + 1}. id="${c.id}" name="${c.name}" depts=[${(c.departments || []).join(",")}]`
+        ).join("\n")
+      : "";
+
+    const prompt = `患者が記録した自由文を整理します。診断・解釈は一切行わず、以下を判定・整形してください。
+
+## やること
+1. **type 判定**: この文章は「受診の記録(visit)」か「日常の体調メモ(self-log)」か
+   - 受診の特徴: 医師の発言・処方・検査結果・次回予約・「先生に言われた」など
+   - 体調メモの特徴: 自分の症状の主観的記述・気分・体調の変化のみ
+2. **type=visit の場合**: findings(医師の所見) と nextActionDraft(次回までにすること) に分けて整形
+3. **type=self-log の場合**: selfLogTitle(30字以内のタイトル) と selfLogDetail(本文) を作成
+4. **次回受診日**: 「○日後／○ヶ月後／○月○日」が含まれれば nextVisitDate を YYYY-MM-DD で計算（受診日 ${today} 基準）
+5. **病院推測**: 文中に病院名が出ていて、登録済み候補と一致するなら suggestedClinicId/Department を返す（推測できなければ null）
+6. **suggestions**: 処方変更/検査指示/治療変更が含まれていればフラグを true
+
+## 厳守事項
+- 入力にないことは書かない（創作禁止）
+- 医学的解釈・重症度評価は禁止
+- 確信が持てないときは type="self-log" にフォールバック（より安全）
+
+## 例1: 受診の記録
+入力: "今日先生にレブラミドこのまま続けて、3ヶ月後に再診って言われた。VEGFは正常範囲でした。"
+出力: {
+  "type":"visit", "confidence":0.95,
+  "findings":"・レブラミドは現状のまま継続\\n・VEGF は正常範囲",
+  "nextActionDraft":"・3ヶ月後に再診",
+  "nextVisitDate":"<3ヶ月後>",
+  "selfLogTitle":null, "selfLogDetail":null,
+  "suggestedClinicId":null, "suggestedDepartment":null,
+  "suggestions": {"medicationChange":false,"newLab":false,"newProcedure":false}
+}
+
+## 例2: 体調メモ
+入力: "今日は朝から手のしびれが少し強い。歩くのは大丈夫。夕方には楽になった。"
+出力: {
+  "type":"self-log", "confidence":0.92,
+  "findings":null, "nextActionDraft":null, "nextVisitDate":null,
+  "selfLogTitle":"朝の手のしびれ強め、夕方楽に",
+  "selfLogDetail":"今日は朝から手のしびれが少し強い。歩くのは大丈夫。夕方には楽になった。",
+  "suggestedClinicId":null, "suggestedDepartment":null,
+  "suggestions": {"medicationChange":false,"newLab":false,"newProcedure":false}
+}
+
+## 入力（疾患: ${diseaseName}・記録日: ${today}）
+"""
+${rawText}
+"""
+${clinicsHint}
+
+## 出力JSON（これ以外は出力しない）
+{
+  "type": "visit" | "self-log",
+  "confidence": <0-1>,
+  "findings": <string or null>,
+  "nextActionDraft": <string or null>,
+  "nextVisitDate": <"YYYY-MM-DD" or null>,
+  "selfLogTitle": <string or null>,
+  "selfLogDetail": <string or null>,
+  "suggestedClinicId": <string or null>,
+  "suggestedDepartment": <string or null>,
+  "suggestions": {
+    "medicationChange": <true or false>,
+    "newLab": <true or false>,
+    "newProcedure": <true or false>
+  }
+}`;
+
+    const model = getTextModel();
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const parsed = parseJsonSafe(responseText);
+
+    if (!parsed) {
+      return res.status(500).json({ error: "Failed to parse AI response", raw: responseText.slice(0, 500) });
+    }
+
+    const sanitized = {
+      type: parsed.type === "visit" ? "visit" : "self-log",
+      confidence: typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.5,
+      findings: typeof parsed.findings === "string" ? parsed.findings : null,
+      nextActionDraft: typeof parsed.nextActionDraft === "string" ? parsed.nextActionDraft : null,
+      nextVisitDate: /^\d{4}-\d{2}-\d{2}$/.test(parsed.nextVisitDate || "") ? parsed.nextVisitDate : null,
+      selfLogTitle: typeof parsed.selfLogTitle === "string" ? parsed.selfLogTitle : null,
+      selfLogDetail: typeof parsed.selfLogDetail === "string" ? parsed.selfLogDetail : null,
+      suggestedClinicId: typeof parsed.suggestedClinicId === "string" ? parsed.suggestedClinicId : null,
+      suggestedDepartment: typeof parsed.suggestedDepartment === "string" ? parsed.suggestedDepartment : null,
+      suggestions: {
+        medicationChange: !!parsed.suggestions?.medicationChange,
+        newLab: !!parsed.suggestions?.newLab,
+        newProcedure: !!parsed.suggestions?.newProcedure,
+      },
+    };
+    res.json(sanitized);
+  } catch (err) {
+    console.error("parse-record error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ======================================================
 // POST /api/ai/summarize-other-visits
 // 「いま見せる病院」以外の最近の受診を、医師に伝える1文の箇条書きに整形
 // body: {
