@@ -314,6 +314,55 @@ const DEMO_DATA = {
     ],
   },
 
+  oi: {
+    profile: {
+      displayName: "デモユーザー",
+      diagnosisName: "骨形成不全症",
+      diagnosisDate: "1992-04-10",
+      diseaseId: "oi",
+    },
+    timeline: [
+      { id: "ev1", date: "1992-04-10", category: "diagnosis", title: "骨形成不全症と診断", detail: "出生後の長管骨複数骨折と青色強膜から OI を疑い、当時の臨床所見でⅣ型と診断。", source: "manual" },
+      { id: "ev2", date: "2005-09-02", category: "genetic_test", title: "遺伝子検査でCOL1A1変異確定", detail: "国立成育医療研究センター。COL1A1 ヘテロ接合性ミスセンス変異を確定。", source: "manual" },
+      { id: "ev3", date: "2008-03-15", category: "bp_therapy", title: "パミドロン酸点滴（BP）開始", detail: "大阪母子医療センターで導入。3か月毎に外来点滴。", source: "manual" },
+      { id: "ev4", date: "2012-07-20", category: "surgery", title: "右大腿骨 髄内釘挿入術", detail: "再骨折部位の変形矯正＋伸張型髄内釘。術後リハ8週間。", source: "manual" },
+      { id: "ev5", date: "2015-11-10", category: "fracture", title: "左前腕骨折（軽微外傷）", detail: "ドアにぶつけ橈骨遠位端骨折。ギプス固定6週間。", source: "manual" },
+      { id: "ev6", date: "2018-04-05", category: "hearing_check", title: "聴力低下指摘・補聴器導入", detail: "右耳混合性難聴 35dB。耳鼻科で気導補聴器を装用開始。", source: "manual" },
+      { id: "ev7", date: "2020-06-12", category: "bp_therapy", title: "経口アレンドロン酸へ切替", detail: "成人移行に合わせ週1回経口BPに変更。点滴は年1回ゾレドロン酸でフォロー。", source: "manual" },
+      { id: "ev8", date: "2023-09-08", category: "dxa", title: "定期DXA検査", detail: "腰椎 Z-score -1.8 / 大腿骨頸部 Z-score -1.5。BP治療効果は維持。", source: "manual" },
+      { id: "ev9", date: "2025-02-14", category: "dental", title: "歯科処置（DI 対応）", detail: "象牙質形成不全のため左下大臼歯に被せ物。BP歴を歯科に共有済。", source: "manual" },
+      { id: "ev10", date: "2026-03-22", category: "exam", title: "整形外来 定期フォロー", detail: "骨折なし。リハ継続でADL自立。次回6ヶ月後。", source: "manual" },
+    ],
+    medications: [
+      { id: "m1", name: "ボナロン", genericName: "アレンドロン酸", category: "bisphosphonate_oral", dosageForm: "経口", startDate: "2020-06-12", endDate: null, isActive: true, changeReason: "成人移行で経口製剤に切替", sideNotes: "週1回35mg、起床時水コップ1杯で服用、30分は横にならない" },
+      { id: "m2", name: "リクラスト", genericName: "ゾレドロン酸", category: "bisphosphonate_iv", dosageForm: "点滴", startDate: "2021-06-15", endDate: null, isActive: true, changeReason: "経口補完（年1回）", sideNotes: "5mg年1回点滴。投与翌日は発熱対策にカロナール" },
+      { id: "m3", name: "デノタスチュアブル", genericName: "コレカルシフェロール/カルシウム配合", category: "calcium_vitd", dosageForm: "経口", startDate: "2008-03-15", endDate: null, isActive: true, changeReason: "BP治療の基礎補充", sideNotes: "1日1回 食後" },
+      { id: "m4", name: "エディロール", genericName: "エルデカルシトール", category: "active_vitd", dosageForm: "経口", startDate: "2018-08-01", endDate: null, isActive: true, changeReason: "骨密度低下への上乗せ", sideNotes: "0.75μg/日。血清Caを定期確認" },
+      { id: "m5", name: "カロナール", genericName: "アセトアミノフェン", category: "analgesic", dosageForm: "経口", startDate: "2015-11-10", endDate: null, isActive: true, changeReason: "骨折時・腰背部痛の頓用", sideNotes: "500mg 痛い時のみ" },
+      { id: "m6", name: "パミドロン酸Ⅱ静注", genericName: "パミドロン酸ナトリウム", category: "bisphosphonate_iv", dosageForm: "点滴", startDate: "2008-03-15", endDate: "2020-06-12", isActive: false, changeReason: "成人移行で経口BPに切替", sideNotes: "3か月毎に外来点滴。初回急性期反応あり" },
+    ],
+    labResults: [
+      { id: "l1", date: "2026-03-22", values: { bap: 12.4, p1np: 38, ntx_u: 16.2, tracp5b: 245, ca: 9.2, p: 3.4, alp: 78, vitd: 38, intactPth: 32, dxa_lumbar_yam: 78, dxa_lumbar_z: -1.8, dxa_femur_z: -1.5 } },
+      { id: "l2", date: "2025-09-15", values: { bap: 13.1, p1np: 42, ntx_u: 18.5, tracp5b: 268, ca: 9.1, p: 3.3, alp: 82, vitd: 36, intactPth: 35, dxa_lumbar_yam: 76, dxa_lumbar_z: -1.9, dxa_femur_z: -1.6 } },
+      { id: "l3", date: "2025-03-10", values: { bap: 14.0, p1np: 45, ntx_u: 22.1, tracp5b: 290, ca: 9.0, p: 3.5, alp: 85, vitd: 32, intactPth: 38, dxa_lumbar_yam: 75, dxa_lumbar_z: -2.0, dxa_femur_z: -1.7 } },
+      { id: "l4", date: "2024-09-08", values: { bap: 14.8, p1np: 48, ntx_u: 24.6, tracp5b: 312, ca: 9.0, p: 3.4, alp: 88, vitd: 28, intactPth: 42 } },
+      { id: "l5", date: "2024-03-05", values: { bap: 15.2, p1np: 52, ntx_u: 28.0, tracp5b: 345, ca: 8.9, p: 3.5, alp: 92, vitd: 25, intactPth: 48, dxa_lumbar_yam: 73, dxa_lumbar_z: -2.1, dxa_femur_z: -1.8 } },
+    ],
+    clinics: [
+      { id: "c1", name: "大阪母子医療センター", address: "大阪府和泉市室堂町840", phone: "0725-56-1220", departments: ["整形外科", "リハビリテーション科"], isPrimary: true, note: "OI診療拠点。BP治療・髄内釘手術・成人移行のフォロー。" },
+      { id: "c2", name: "近藤耳鼻咽喉科", address: "大阪府堺市", phone: "", departments: ["耳鼻咽喉科"], isPrimary: false, note: "混合性難聴のフォロー・補聴器調整。" },
+      { id: "c3", name: "さくら歯科クリニック", address: "大阪府堺市", phone: "", departments: ["歯科"], isPrimary: false, note: "象牙質形成不全（DI）の管理。BP治療歴を共有済。" },
+      { id: "c4", name: "市立堺総合病院 内分泌内科", address: "大阪府堺市西区家原寺町1-1-1", phone: "072-272-1199", departments: ["内分泌内科"], isPrimary: false, note: "骨代謝マーカー・DXAのフォロー。" },
+    ],
+    visits: [
+      { id: "v1", date: "2023-09-08", clinicId: "c1", department: "整形外科", doctor: "大阪 一郎", chiefComplaint: "骨密度の定期評価", findings: "DXA腰椎 Z-score -1.8。BP治療効果維持。新規骨折なし。", nextAction: "アレンドロン酸＋年1回ゾレドロン酸継続。次回6か月後にDXA。", photos: [], relatedMedicationIds: ["m1", "m2"], relatedLabResultIds: [], relatedTimelineEventId: "ev8" },
+      { id: "v2", date: "2025-02-14", clinicId: "c3", department: "歯科", doctor: "桜井 美香", chiefComplaint: "左下奥歯がしみる", findings: "象牙質形成不全（DI）に伴うエナメル質摩耗。BP治療歴ありのため抜歯回避し被せ物で対応。", nextAction: "被せ物完成後に再評価。3ヶ月後の定期クリーニング予約。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: "ev9" },
+      { id: "v3", date: "2025-09-15", clinicId: "c4", department: "内分泌内科", doctor: "森下 健", chiefComplaint: "BP治療効果の評価", findings: "BAP 13.1・NTX 18.5 と骨吸収抑制良好。25(OH)D 36 ng/mL で十分。", nextAction: "現薬継続。半年後に再検査。", photos: [], relatedMedicationIds: ["m1", "m3", "m4"], relatedLabResultIds: ["l2"], relatedTimelineEventId: null },
+      { id: "v4", date: "2025-11-05", clinicId: "c2", department: "耳鼻咽喉科", doctor: "近藤 弘子", chiefComplaint: "右耳の聞こえが少し低下した気がする", findings: "右耳気導 42dB（前回35dB）。混合性難聴の進行を確認。補聴器の出力調整。", nextAction: "補聴器再調整後 1ヶ月でフォロー。アブミ骨手術検討は次回相談。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
+      { id: "v5", date: "2026-03-22", clinicId: "c1", department: "整形外科", doctor: "大阪 一郎", chiefComplaint: "腰背部痛が時々出る", findings: "胸椎側弯軽度進行なし。骨折なし。リハ継続でADL自立。", nextAction: "リハ週1回継続、痛み時はカロナール頓用。次回6ヶ月後。", photos: [], relatedMedicationIds: ["m5"], relatedLabResultIds: ["l1"], relatedTimelineEventId: "ev10" },
+    ],
+  },
+
   pah: {
     profile: { displayName: "デモユーザー", diagnosisName: "肺動脈性肺高血圧症", diagnosisDate: "2020-01-22", diseaseId: "pah" },
     timeline: [
