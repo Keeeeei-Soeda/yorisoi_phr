@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI相談 — よりそい PHR</title>
+  <!-- フォントCDN への接続を事前確立してレンダリング遅延を短縮 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://static.line-scdn.net">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ページ全体をチャット専用レイアウトにする */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* コンテンツエリアを可変高さに */
+    .chat-page-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--gray-50);
+    }
+
+    /* 案内カード */
+    .chat-intro {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 12px 16px;
+      flex-shrink: 0;
+    }
+
+    .chat-intro-inner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .chat-intro-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .chat-intro-text {
+      flex: 1;
+    }
+
+    .chat-intro-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-800);
+      line-height: 1.3;
+    }
+
+    .chat-intro-desc {
+      font-size: 11px;
+      color: var(--gray-500);
+      line-height: 1.5;
+      margin-top: 2px;
+    }
+
+    .chat-intro-desc a {
+      color: var(--brand-500);
+      text-decoration: none;
+    }
+
+    /* 会話ログエリア */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+
+    /* バブル */
+    .chat-bubble {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .chat-bubble.user { flex-direction: row-reverse; }
+
+    .bubble-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+      background: var(--gray-200);
+    }
+
+    .chat-bubble.ai .bubble-avatar {
+      background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+    }
+
+    .bubble-body {
+      max-width: 80%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .bubble-text {
+      padding: 11px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .chat-bubble.ai .bubble-text {
+      background: var(--white);
+      color: var(--gray-800);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chat-bubble.user .bubble-text {
+      background: var(--brand-500);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* 参照体験記 */
+    .bubble-refs {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .bubble-refs-label {
+      font-size: 11px;
+      color: var(--gray-400);
+      padding-left: 2px;
+    }
+
+    .bubble-ref-link {
+      font-size: 12px;
+      color: var(--brand-600);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 10px;
+      background: var(--brand-50);
+      border-radius: 10px;
+      border: 1px solid var(--brand-100);
+      transition: background 0.1s;
+      line-height: 1.4;
+    }
+
+    .bubble-ref-link:active { background: var(--brand-100); }
+
+    .bubble-ref-link .material-symbols-outlined {
+      font-size: 14px;
+      flex-shrink: 0;
+      color: var(--brand-400);
+    }
+
+    /* タイピングインジケーター */
+    .typing-indicator {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 12px 14px;
+      background: var(--white);
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow-sm);
+      width: fit-content;
+    }
+
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--gray-400);
+      border-radius: 50%;
+      animation: typing-bounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40%           { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* 入力エリア */
+    .chat-input-section {
+      background: var(--white);
+      border-top: 1px solid var(--gray-200);
+      padding: 10px 16px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      flex-shrink: 0;
+    }
+
+    .chat-turn-info {
+      font-size: 11px;
+      color: var(--gray-400);
+      text-align: right;
+      margin-bottom: 6px;
+      min-height: 14px;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      border: 1.5px solid var(--gray-300);
+      border-radius: 22px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      max-height: 110px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+      overflow-y: auto;
+      background: var(--gray-50);
+    }
+
+    .chat-input:focus {
+      border-color: var(--brand-400);
+      background: var(--white);
+    }
+
+    .chat-input:disabled {
+      background: var(--gray-100);
+      color: var(--gray-400);
+    }
+
+    .chat-send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--brand-500);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #fff;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .chat-send-btn:disabled { background: var(--gray-300); cursor: not-allowed; }
+    .chat-send-btn:not(:disabled):active { transform: scale(0.9); }
+
+    /* 新規相談ボタン */
+    .chat-new-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--white);
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius);
+      color: var(--gray-600);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: none;
+      margin-top: 8px;
+    }
+
+    .chat-new-btn:active { background: var(--gray-100); }
+
+    /* 提案チップ（最初のみ） */
+    .suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .suggestion-chip {
+      padding: 6px 12px;
+      border-radius: 16px;
+      background: var(--brand-50);
+      border: 1px solid var(--brand-200);
+      font-size: 12px;
+      color: var(--brand-700);
+      cursor: pointer;
+      transition: background 0.1s;
+      white-space: nowrap;
+    }
+
+    .suggestion-chip:active { background: var(--brand-100); }
+  </style>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <div class="header" id="main-header">
+    <button class="header-back" id="back-btn">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <h1>AI相談</h1>
+  </div>
+
+  <!-- チャット本体 -->
+  <div class="chat-page-body">
+    <!-- 案内カード -->
+    <div class="chat-intro">
+      <div class="chat-intro-inner">
+        <div class="chat-intro-icon">🤖</div>
+        <div class="chat-intro-text">
+          <div class="chat-intro-title">患者体験記をもとに回答します</div>
+          <div class="chat-intro-desc">
+            医療アドバイスは行いません。治療の判断は必ず主治医にご相談ください。
+            <a id="stories-back-link" href="/stories.html">体験記一覧に戻る</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 会話ログ（ウェルカムメッセージはHTMLに直書きしてJSを待たずに表示） -->
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-bubble ai" id="welcome-bubble">
+        <div class="bubble-avatar">🤖</div>
+        <div class="bubble-body">
+          <div class="bubble-text">こんにちは。患者体験記をもとに、疑問や不安にお答えします。&#10;どんなことでも気軽に聞いてください。</div>
+          <div class="suggestion-chips" id="suggestions">
+            <button class="suggestion-chip" onclick="useSuggestion(this, '診断後の仕事はどうしましたか？')">診断後の仕事はどうしましたか？</button>
+            <button class="suggestion-chip" onclick="useSuggestion(this, '副作用への対処法を教えてください')">副作用への対処法は？</button>
+            <button class="suggestion-chip" onclick="useSuggestion(this, '家族への伝え方はどうしましたか？')">家族への伝え方は？</button>
+            <button class="suggestion-chip" onclick="useSuggestion(this, '治療中の生活で工夫したことは？')">生活での工夫は？</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 入力エリア -->
+    <div class="chat-input-section">
+      <div class="chat-turn-info" id="chat-turn-info"></div>
+      <div class="chat-input-row">
+        <textarea
+          class="chat-input"
+          id="chat-input"
+          rows="1"
+          placeholder="例：治療中の仕事はどうしましたか？"
+          maxlength="300"
+          oninput="autoResize(this)"
+          onkeydown="onKeyDown(event)"
+        ></textarea>
+        <button class="chat-send-btn" id="send-btn" onclick="sendMessage()" disabled>
+          <span class="material-symbols-outlined" style="font-size:20px;">send</span>
+        </button>
+      </div>
+      <button class="chat-new-btn" id="new-btn" onclick="resetChat()">
+        <span class="material-symbols-outlined" style="font-size:15px; vertical-align:middle;">refresh</span>
+        新しい相談を始める
+      </button>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script>
+    // URL から disease_type を取得（stories.html から引き継ぎ）
+    const urlParams      = new URLSearchParams(location.search);
+    const urlDiseaseType = urlParams.get("disease_type") || null;
+
+    const MAX_TURNS = 10;
+    let chatHistory  = [];
+    let chatBusy     = false;
+    let myDiseaseType = urlDiseaseType;
+
+    const SUGGESTION_QUESTIONS = [
+      "診断後の仕事はどうしましたか？",
+      "副作用への対処法を教えてください",
+      "家族への伝え方はどうしましたか？",
+      "治療中の生活で工夫したことは？",
+    ];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const { template } = await initLiff();
+
+        if (template?.color) {
+          document.getElementById("main-header").style.background =
+            `linear-gradient(135deg, ${template.color}, ${template.color}dd)`;
+        }
+
+        // バック先に disease パラメータを付与
+        const diseaseParam = _diseaseId ? `?disease=${_diseaseId}` : "";
+        const storiesUrl   = `/stories.html${diseaseParam}`;
+
+        document.getElementById("back-btn").onclick = () => { location.href = storiesUrl; };
+        document.getElementById("stories-back-link").href = storiesUrl;
+
+        // プロフィールから disease_type を補完（URL に無かった場合）
+        if (!myDiseaseType) {
+          try {
+            const profile = await apiGet("/api/profile");
+            if (profile?.diseaseSubtype) myDiseaseType = profile.diseaseSubtype;
+          } catch (_) {}
+        }
+
+        // ウェルカムメッセージはHTML静的配置済み（JSを待たず即表示）
+        document.getElementById("chat-input").focus();
+      } catch (err) {
+        console.error("Init error:", err);
+      }
+    });
+
+    // ──────────────────────────────────────
+    // バブル描画
+    // ──────────────────────────────────────
+
+    function appendBubble(role, text, refs = [], showSuggestions = false) {
+      const el = document.createElement("div");
+      el.className = `chat-bubble ${role}`;
+
+      const avatarHtml = role === "ai"
+        ? `<div class="bubble-avatar">🤖</div>`
+        : `<div class="bubble-avatar" style="background:var(--brand-100);">👤</div>`;
+
+      const refsHtml = refs.length > 0
+        ? `<div class="bubble-refs">
+            <div class="bubble-refs-label">参照した体験記：</div>
+            ${refs.map(r =>
+              `<a class="bubble-ref-link" href="${escapeHtml(r.url)}">
+                <span class="material-symbols-outlined">article</span>
+                ${escapeHtml(r.title)}
+              </a>`
+            ).join("")}
+          </div>`
+        : "";
+
+      const suggestionsHtml = showSuggestions
+        ? `<div class="suggestion-chips" id="suggestions">
+            ${SUGGESTION_QUESTIONS.map(q =>
+              `<button class="suggestion-chip" onclick="useSuggestion(this, '${q.replace(/'/g, "\\'")}')">
+                ${escapeHtml(q)}
+              </button>`
+            ).join("")}
+          </div>`
+        : "";
+
+      el.innerHTML = `
+        ${role === "ai" ? avatarHtml : ""}
+        <div class="bubble-body">
+          <div class="bubble-text">${escapeHtml(text)}</div>
+          ${refsHtml}
+          ${suggestionsHtml}
+        </div>
+        ${role === "user" ? avatarHtml : ""}
+      `;
+
+      document.getElementById("chat-messages").appendChild(el);
+      scrollBottom();
+      return el;
+    }
+
+    function useSuggestion(btn, text) {
+      // チップ欄を非表示にして入力欄にセット
+      const chips = document.getElementById("suggestions");
+      if (chips) chips.style.display = "none";
+      const input = document.getElementById("chat-input");
+      input.value = text;
+      autoResize(input);
+      document.getElementById("send-btn").disabled = false;
+      sendMessage();
+    }
+
+    function showTyping() {
+      const el = document.createElement("div");
+      el.className = "chat-bubble ai";
+      el.id = "typing-bubble";
+      el.innerHTML = `
+        <div class="bubble-avatar">🤖</div>
+        <div class="bubble-body">
+          <div class="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      `;
+      document.getElementById("chat-messages").appendChild(el);
+      scrollBottom();
+    }
+
+    function removeTyping() {
+      document.getElementById("typing-bubble")?.remove();
+    }
+
+    function scrollBottom() {
+      const el = document.getElementById("chat-messages");
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // ──────────────────────────────────────
+    // 入力制御
+    // ──────────────────────────────────────
+
+    function autoResize(el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 110) + "px";
+      document.getElementById("send-btn").disabled = el.value.trim().length === 0 || chatBusy;
+    }
+
+    function onKeyDown(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function disableInput() {
+      chatBusy = true;
+      document.getElementById("chat-input").disabled = true;
+      document.getElementById("send-btn").disabled = true;
+    }
+
+    function enableInput() {
+      chatBusy = false;
+      const input = document.getElementById("chat-input");
+      input.disabled = false;
+      input.value = "";
+      input.style.height = "auto";
+      document.getElementById("send-btn").disabled = true;
+    }
+
+    function updateTurnInfo() {
+      const userTurns = chatHistory.filter(h => h.role === "user").length;
+      const remaining = MAX_TURNS - userTurns;
+      const el = document.getElementById("chat-turn-info");
+
+      if (remaining <= 0) {
+        disableInput();
+        document.getElementById("chat-input").placeholder = "この相談セッションは終了しました";
+        document.getElementById("new-btn").style.display = "block";
+        el.textContent = "上限に達しました。新しい相談を始めてください。";
+      } else if (remaining <= 3) {
+        el.textContent = `残り${remaining}回の質問ができます`;
+      } else {
+        el.textContent = "";
+      }
+    }
+
+    function resetChat() {
+      chatHistory = [];
+      chatBusy    = false;
+      document.getElementById("new-btn").style.display      = "none";
+      document.getElementById("chat-turn-info").textContent = "";
+      enableInput();
+      // メッセージログをリセットしてウェルカムを再表示
+      document.getElementById("chat-messages").innerHTML = "";
+      appendBubble("ai",
+        "新しい相談を始めます。どんなことでも聞いてください。",
+        [], true
+      );
+      document.getElementById("chat-input").focus();
+    }
+
+    // ──────────────────────────────────────
+    // メッセージ送信
+    // ──────────────────────────────────────
+
+    async function sendMessage() {
+      const input = document.getElementById("chat-input");
+      const message = input.value.trim();
+      if (!message || chatBusy) return;
+      if (chatHistory.filter(h => h.role === "user").length >= MAX_TURNS) return;
+
+      appendBubble("user", message);
+      chatHistory.push({ role: "user", content: message });
+      disableInput();
+      showTyping();
+
+      try {
+        const payload = {
+          message,
+          history: chatHistory.slice(0, -1),
+          disease_type: myDiseaseType || undefined,
+        };
+        const data = await apiPost("/api/consultation", payload);
+
+        removeTyping();
+        chatHistory.push({ role: "assistant", content: data.answer });
+        appendBubble("ai", data.answer, data.referenced_stories || []);
+        updateTurnInfo();
+
+        const remaining = MAX_TURNS - chatHistory.filter(h => h.role === "user").length;
+        if (remaining > 0) enableInput();
+      } catch (err) {
+        removeTyping();
+        appendBubble("ai", "申し訳ありません、エラーが発生しました。もう一度お試しください。");
+        enableInput();
+      }
+    }
+  </script>
+</body>
+</html>

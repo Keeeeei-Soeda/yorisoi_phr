@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>患者体験記 — よりそい PHR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://static.line-scdn.net">
   <link rel="stylesheet" href="/css/style.css">
   <style>
     /* フィルターバー */
@@ -18,12 +21,6 @@
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
-    }
-
-    .filter-label {
-      font-size: 13px;
-      color: var(--gray-600);
-      white-space: nowrap;
     }
 
     .disease-toggle-wrap {
@@ -66,18 +63,9 @@
       transition: transform 0.2s;
     }
 
-    .toggle-switch input:checked + .toggle-slider {
-      background: var(--brand-500);
-    }
-
-    .toggle-switch input:checked + .toggle-slider::before {
-      transform: translateX(18px);
-    }
-
-    .toggle-switch input:disabled + .toggle-slider {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--brand-500); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+    .toggle-switch input:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
 
     .toggle-text {
       font-size: 13px;
@@ -86,11 +74,7 @@
     }
 
     /* 疾患タブ */
-    .disease-tabs {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
+    .disease-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 
     .disease-tab {
       padding: 4px 12px;
@@ -108,6 +92,73 @@
       border-color: var(--brand-500);
       background: var(--brand-50);
       color: var(--brand-700);
+    }
+
+    /* AI相談バナー */
+    .ai-consultation-banner {
+      background: linear-gradient(135deg, var(--brand-50) 0%, #f0f9ff 100%);
+      border: 1.5px solid var(--brand-200);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .ai-banner-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .ai-banner-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .ai-banner-text { flex: 1; }
+
+    .ai-banner-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--brand-800);
+      line-height: 1.3;
+    }
+
+    .ai-banner-sub {
+      font-size: 12px;
+      color: var(--brand-600);
+      margin-top: 2px;
+    }
+
+    .ai-banner-btn {
+      width: 100%;
+      padding: 11px;
+      background: var(--brand-500);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s, transform 0.1s;
+      text-decoration: none;
+    }
+
+    .ai-banner-btn:active {
+      background: var(--brand-600);
+      transform: scale(0.98);
     }
 
     /* 体験記カード */
@@ -137,13 +188,7 @@
       margin-bottom: 8px;
     }
 
-    .disease-badge {
-      padding: 2px 10px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
+    .disease-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; }
     .disease-badge-cml  { background: #dbeafe; color: #1d4ed8; }
     .disease-badge-aml  { background: #fee2e2; color: #991b1b; }
     .disease-badge-all  { background: #fef3c7; color: #92400e; }
@@ -183,15 +228,8 @@
       margin-top: 10px;
     }
 
-    .story-date {
-      font-size: 12px;
-      color: var(--gray-400);
-    }
-
-    .story-arrow {
-      font-size: 18px;
-      color: var(--gray-400);
-    }
+    .story-date { font-size: 12px; color: var(--gray-400); }
+    .story-arrow { font-size: 18px; color: var(--gray-400); }
 
     /* 免責バナー */
     .disclaimer {
@@ -205,24 +243,15 @@
       line-height: 1.5;
     }
 
-    .disclaimer-icon {
-      font-size: 14px;
-      vertical-align: middle;
-      margin-right: 4px;
-    }
+    .disclaimer-icon { font-size: 14px; vertical-align: middle; margin-right: 4px; }
 
-    /* カウント表示 */
-    .stories-count {
-      font-size: 13px;
-      color: var(--gray-500);
-      margin-bottom: 12px;
-    }
+    .stories-count { font-size: 13px; color: var(--gray-500); margin-bottom: 12px; }
   </style>
 </head>
 <body>
   <!-- ヘッダー -->
   <div class="header" id="main-header">
-    <button class="header-back" onclick="history.back()">
+    <button class="header-back" id="back-btn" onclick="goTopPage()">
       <span class="material-symbols-outlined">arrow_back</span>
     </button>
     <h1>患者体験記</h1>
@@ -237,7 +266,7 @@
       <button class="disease-tab" data-disease="all_type">ALL</button>
       <button class="disease-tab" data-disease="cll">CLL</button>
     </div>
-    <div class="disease-toggle-wrap" id="my-disease-toggle-wrap">
+    <div class="disease-toggle-wrap">
       <label class="toggle-switch">
         <input type="checkbox" id="my-disease-toggle" disabled>
         <span class="toggle-slider"></span>
@@ -247,6 +276,21 @@
   </div>
 
   <div class="content">
+    <!-- AI相談バナー（体験記より上） -->
+    <div class="ai-consultation-banner" id="ai-banner">
+      <div class="ai-banner-top">
+        <div class="ai-banner-icon">🤖</div>
+        <div class="ai-banner-text">
+          <div class="ai-banner-title">体験記をもとにAIに相談する</div>
+          <div class="ai-banner-sub">患者さんの実体験を参考に回答します</div>
+        </div>
+      </div>
+      <a class="ai-banner-btn" id="ai-banner-btn" href="/consultation.html">
+        <span class="material-symbols-outlined" style="font-size:18px;">chat</span>
+        AIに質問する
+      </a>
+    </div>
+
     <!-- 免責文言 -->
     <div class="disclaimer">
       <span class="disclaimer-icon">⚠️</span>
@@ -255,66 +299,62 @@
     </div>
 
     <p class="stories-count" id="stories-count"></p>
-    <div id="stories-list"></div>
+    <!-- スケルトン: JSロード前でも即表示、データ取得後に上書き -->
+    <div id="stories-list">
+      <div class="skeleton-card">
+        <div class="skeleton-line" style="width:45%"></div>
+        <div class="skeleton-line" style="width:88%"></div>
+        <div class="skeleton-line" style="width:70%"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-line" style="width:55%"></div>
+        <div class="skeleton-line" style="width:92%"></div>
+        <div class="skeleton-line" style="width:65%"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-line" style="width:40%"></div>
+        <div class="skeleton-line" style="width:85%"></div>
+        <div class="skeleton-line" style="width:75%"></div>
+      </div>
+    </div>
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
   <script src="/js/liff-init.js"></script>
   <script>
-    const DISEASE_LABELS = {
-      cml: "CML",
-      aml: "AML",
-      all: "ALL",
-      cll: "CLL",
-      other: "その他",
-    };
-
-    const GENDER_LABELS = {
-      male: "男性",
-      female: "女性",
-      unanswered: "",
-    };
+    const DISEASE_LABELS = { cml: "CML", aml: "AML", all: "ALL", cll: "CLL", other: "その他" };
+    const GENDER_LABELS  = { male: "男性", female: "女性", unanswered: "" };
 
     let currentDisease = "all";
-    let myDiseaseType = null;
-    let allStories = [];
+    let myDiseaseType  = null;
+    let allStories     = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
       try {
         const { template } = await initLiff();
 
-        // ヘッダー色
         if (template?.color) {
           document.getElementById("main-header").style.background =
             `linear-gradient(135deg, ${template.color}, ${template.color}dd)`;
         }
 
-        // プロフィールから疾患を取得（デモモードでも動作）
         try {
           const profile = await apiGet("/api/profile");
-          if (profile?.diseaseSubtype) {
-            myDiseaseType = profile.diseaseSubtype;
-          }
+          if (profile?.diseaseSubtype) myDiseaseType = profile.diseaseSubtype;
         } catch (_) {}
 
-        // 「自分の疾患のみ」トグルの初期化
         setupDiseaseToggle();
-
-        // 体験記一覧を取得・表示
         await loadStories();
 
-        // 疾患タブのイベント
         document.getElementById("disease-tabs").addEventListener("click", (e) => {
           const btn = e.target.closest(".disease-tab");
           if (!btn) return;
           document.querySelectorAll(".disease-tab").forEach((t) => t.classList.remove("active"));
           btn.classList.add("active");
-          // ALLタブはAPIパラメータ"all"（疾患種別）と"all"（全件）が被るので内部で変換
           currentDisease = btn.dataset.disease === "all_type" ? "all_filter" : btn.dataset.disease;
           renderStories();
         });
 
-        // 「自分の疾患のみ」トグルのイベント
         document.getElementById("my-disease-toggle").addEventListener("change", renderStories);
 
       } catch (err) {
@@ -326,7 +366,7 @@
 
     function setupDiseaseToggle() {
       const toggle = document.getElementById("my-disease-toggle");
-      const label = document.getElementById("toggle-label");
+      const label  = document.getElementById("toggle-label");
       if (myDiseaseType) {
         toggle.disabled = false;
         label.textContent = `${DISEASE_LABELS[myDiseaseType] || myDiseaseType}のみ`;
@@ -338,33 +378,43 @@
     }
 
     async function loadStories() {
-      showLoading("stories-list");
+      // スケルトンが表示済みのため showLoading 不要
       try {
-        // API から全件取得（?t= でブラウザキャッシュを回避）
         allStories = await apiGet(`/api/stories?t=${Date.now()}`);
         renderStories();
+        if (allStories.length > 0) {
+          const banner = document.getElementById("ai-banner");
+          const btn    = document.getElementById("ai-banner-btn");
+          const params = new URLSearchParams();
+          if (_diseaseId)    params.set("disease", _diseaseId);
+          if (myDiseaseType) params.set("disease_type", myDiseaseType);
+          btn.href = `/consultation.html${params.toString() ? "?" + params.toString() : ""}`;
+          banner.style.display = "block";
+        }
       } catch (err) {
         document.getElementById("stories-list").innerHTML =
           '<div class="empty-state"><div class="empty-state-icon">📖</div><p class="empty-state-text">体験記を読み込めませんでした</p></div>';
       }
     }
 
-    function renderStories() {
-      const myOnlyToggle = document.getElementById("my-disease-toggle");
-      const useMyDisease = myOnlyToggle.checked && myDiseaseType;
+    function goTopPage() {
+      // history.back() だと consultation.html に戻る場合があるため直接遷移
+      const disease = new URLSearchParams(location.search).get("disease") || _diseaseId;
+      location.href = disease ? `/?disease=${disease}` : "/";
+    }
 
+    function renderStories() {
+      const useMyDisease = document.getElementById("my-disease-toggle").checked && myDiseaseType;
       let filtered = allStories;
 
       if (useMyDisease) {
         filtered = filtered.filter((s) => s.disease_type === myDiseaseType);
       } else if (currentDisease !== "all") {
-        // "all_filter" は ALL疾患のフィルタ
-        const diseaseParam = currentDisease === "all_filter" ? "all" : currentDisease;
-        filtered = filtered.filter((s) => s.disease_type === diseaseParam);
+        const dp = currentDisease === "all_filter" ? "all" : currentDisease;
+        filtered = filtered.filter((s) => s.disease_type === dp);
       }
 
-      const countEl = document.getElementById("stories-count");
-      countEl.textContent = `${filtered.length}件の体験記`;
+      document.getElementById("stories-count").textContent = `${filtered.length}件の体験記`;
 
       if (filtered.length === 0) {
         document.getElementById("stories-list").innerHTML = `
@@ -376,21 +426,18 @@
       }
 
       const html = filtered.map((story) => {
-        const diseaseKey = story.disease_type || "other";
-        const diseaseBadge = `<span class="disease-badge disease-badge-${escapeHtml(diseaseKey)}">${escapeHtml(DISEASE_LABELS[diseaseKey] || diseaseKey)}</span>`;
-        const ageBadge = story.age_at_diagnosis ? `<span class="story-attr">${story.age_at_diagnosis}代</span>` : "";
-        const genderBadge = story.gender && story.gender !== "unanswered"
+        const dk = story.disease_type || "other";
+        const diseaseBadge = `<span class="disease-badge disease-badge-${escapeHtml(dk)}">${escapeHtml(DISEASE_LABELS[dk] || dk)}</span>`;
+        const ageBadge     = story.age_at_diagnosis ? `<span class="story-attr">${story.age_at_diagnosis}代</span>` : "";
+        const genderBadge  = story.gender && story.gender !== "unanswered"
           ? `<span class="story-attr">${escapeHtml(GENDER_LABELS[story.gender] || "")}</span>` : "";
         const dateStr = story.published_at
-          ? new Date(story.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long" })
-          : "";
-
+          ? new Date(story.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long" }) : "";
         const diseaseParam = _diseaseId ? `?disease=${_diseaseId}` : "";
+
         return `
           <a href="/stories-detail.html${diseaseParam}&id=${encodeURIComponent(story.story_id)}" class="story-card">
-            <div class="story-meta">
-              ${diseaseBadge}${ageBadge}${genderBadge}
-            </div>
+            <div class="story-meta">${diseaseBadge}${ageBadge}${genderBadge}</div>
             <div class="story-title">${escapeHtml(story.title)}</div>
             <div class="story-summary">${escapeHtml(story.summary_fact || "")}</div>
             <div class="story-footer">

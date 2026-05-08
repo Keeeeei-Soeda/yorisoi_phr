@@ -44,6 +44,15 @@ try {
 const storiesRoutes = require("./routes/stories");
 app.use("/api/stories", storiesRoutes);
 
+// --- RAG相談ルート（デモ/本番どちらでも動作） ---
+try {
+  const consultationRoutes = require("./routes/consultation");
+  app.use("/api/consultation", consultationRoutes);
+  console.log("Consultation routes loaded");
+} catch (err) {
+  console.warn("Consultation routes not loaded:", err.message);
+}
+
 if (DEMO_MODE) {
   // --- デモモード: Firestore不要、サンプルデータで動作 ---
   console.log("*** DEMO MODE — using mock data (no Firestore) ***");

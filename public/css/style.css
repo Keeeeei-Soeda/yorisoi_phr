@@ -1,5 +1,6 @@
 /* === よりそい PHR 共通スタイル === */
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
+/* display=swap でフォント待ちによるレンダリングブロックを防止 */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
 
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
@@ -17,6 +18,33 @@
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   vertical-align: middle;
 }
+
+/* ─────────────────────────────────────────────
+   スケルトンローディング
+   ───────────────────────────────────────────── */
+
+@keyframes skeleton-wave {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-line {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.4s ease-in-out infinite;
+  margin-bottom: 8px;
+}
+
+.skeleton-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
 
 :root {
   --brand-50: #fdf4f5;
@@ -377,6 +405,281 @@ body {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────────
+   RAG相談チャットUI
+   ───────────────────────────────────────────── */
+
+.consultation-section {
+  margin-top: 24px;
+  border-top: 2px solid var(--brand-100);
+  padding-top: 20px;
+}
+
+.consultation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.consultation-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.consultation-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+
+.consultation-desc {
+  font-size: 13px;
+  color: var(--gray-500);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+/* チャット開始ボタン（折りたたみ時） */
+.consultation-trigger {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--brand-50), var(--brand-100));
+  border: 1.5px solid var(--brand-200);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-700);
+  transition: all 0.15s;
+}
+
+.consultation-trigger:active {
+  transform: scale(0.98);
+}
+
+/* チャット本体ラッパー */
+.chat-wrapper {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-wrapper.open {
+  display: flex;
+}
+
+/* 会話ログエリア */
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 4px 2px;
+  scroll-behavior: smooth;
+}
+
+/* バブル共通 */
+.chat-bubble {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.chat-bubble.user {
+  flex-direction: row-reverse;
+}
+
+.bubble-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  background: var(--gray-200);
+}
+
+.chat-bubble.ai .bubble-avatar {
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+}
+
+.bubble-body {
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bubble-text {
+  padding: 10px 13px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-bubble.ai .bubble-text {
+  background: var(--gray-100);
+  color: var(--gray-800);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-bubble.user .bubble-text {
+  background: var(--brand-500);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+/* 参照体験記リスト */
+.bubble-refs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.bubble-ref-link {
+  font-size: 12px;
+  color: var(--brand-600);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--brand-50);
+  border-radius: 8px;
+  border: 1px solid var(--brand-100);
+  transition: background 0.1s;
+}
+
+.bubble-ref-link:active {
+  background: var(--brand-100);
+}
+
+/* タイピングインジケーター */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 10px 13px;
+  background: var(--gray-100);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  width: fit-content;
+}
+
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--gray-400);
+  border-radius: 50%;
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40%           { transform: translateY(-6px); opacity: 1; }
+}
+
+/* 入力エリア */
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  border-top: 1px solid var(--gray-200);
+  padding-top: 10px;
+}
+
+.chat-input {
+  flex: 1;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 20px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  max-height: 100px;
+  line-height: 1.5;
+  transition: border-color 0.15s;
+  overflow-y: auto;
+}
+
+.chat-input:focus {
+  border-color: var(--brand-400);
+}
+
+.chat-input:disabled {
+  background: var(--gray-50);
+  color: var(--gray-400);
+}
+
+.chat-send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand-500);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+  color: #fff;
+}
+
+.chat-send-btn:disabled {
+  background: var(--gray-300);
+  cursor: not-allowed;
+}
+
+.chat-send-btn:not(:disabled):active {
+  transform: scale(0.92);
+}
+
+/* ターン数・新規開始 */
+.chat-turn-info {
+  font-size: 12px;
+  color: var(--gray-400);
+  text-align: right;
+}
+
+.chat-new-btn {
+  width: 100%;
+  padding: 11px;
+  background: var(--white);
+  border: 1.5px solid var(--gray-300);
+  border-radius: var(--radius);
+  color: var(--gray-600);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.chat-new-btn:active {
+  background: var(--gray-100);
 }
 
 /* --- ユーティリティ --- */
