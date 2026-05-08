@@ -7,43 +7,677 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" />
   <style>
-    .placeholder {
-      text-align: center; padding: 60px 24px;
-      background: var(--white); border-radius: 16px;
-      border: 2px dashed var(--brand-200);
+    body { padding-bottom: 96px; }
+
+    /* プログレス */
+    .progress-bar {
+      display: flex; gap: 6px; padding: 12px 16px 0; background: var(--white);
+      position: sticky; top: 0; z-index: 5;
     }
-    .placeholder .big-icon {
-      font-size: 72px; color: var(--brand-300);
+    .progress-dot {
+      flex: 1; height: 6px; border-radius: 3px; background: var(--gray-200);
+      transition: background 0.2s;
     }
-    .placeholder h2 { font-size: 20px; margin-top: 12px; letter-spacing: 1.5px; }
-    .placeholder p { font-size: 14px; color: var(--gray-600); line-height: 1.7; margin-top: 12px; letter-spacing: 0.5px; }
-    .placeholder .next { font-size: 13px; color: var(--gray-500); margin-top: 16px; }
-    .alt-link {
-      display: block; text-align: center; padding: 12px;
-      background: var(--brand-50); color: var(--brand-700);
-      border-radius: 12px; text-decoration: none;
-      font-size: 14px; font-weight: 600; margin-top: 16px;
+    .progress-dot.active { background: var(--brand-500); }
+    .progress-dot.done { background: var(--brand-300); }
+
+    /* ペイン */
+    .pane { display: none; padding: 20px 16px; }
+    .pane.active { display: block; }
+    .pane-title {
+      font-size: 22px; font-weight: 700; letter-spacing: 1px; margin-bottom: 6px;
     }
+    .pane-sub { font-size: 13px; color: var(--gray-500); margin-bottom: 20px; line-height: 1.7; }
+
+    /* Step1 — クリニックリスト */
+    .clinic-pick {
+      background: var(--white); border: 2px solid var(--gray-200);
+      border-radius: 16px; padding: 14px 16px; margin-bottom: 12px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .clinic-pick:active { transform: scale(0.99); }
+    .clinic-pick.selected { border-color: var(--brand-500); background: var(--brand-50); }
+    .clinic-pick.primary { border-color: var(--brand-300); }
+    .clinic-pick-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .clinic-pick-name .primary-tag {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      background: var(--brand-500); color: var(--white);
+      padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle;
+    }
+    .dept-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .dept-chip {
+      font-size: 13px; padding: 6px 12px; border-radius: 999px;
+      background: var(--gray-100); color: var(--gray-700);
+      cursor: pointer; border: 2px solid transparent;
+    }
+    .dept-chip.selected { background: var(--brand-500); color: var(--white); border-color: var(--brand-500); }
+
+    .empty-clinic {
+      text-align: center; padding: 40px 24px;
+      background: var(--white); border-radius: 16px; border: 2px dashed var(--gray-200);
+    }
+    .empty-clinic .material-symbols-outlined { font-size: 48px; color: var(--gray-300); }
+    .empty-clinic-cta {
+      display: inline-block; margin-top: 12px;
+      padding: 10px 20px; background: var(--brand-500); color: var(--white);
+      border-radius: 999px; font-weight: 600; text-decoration: none;
+    }
+
+    .field-block { margin-bottom: 16px; }
+    .field-label { font-size: 12px; font-weight: 700; color: var(--gray-600); margin-bottom: 6px; letter-spacing: 0.5px; }
+    .field-input, .field-textarea {
+      width: 100%; padding: 12px 14px; font-size: 15px; font-family: inherit;
+      border: 2px solid var(--gray-200); border-radius: 12px;
+      background: var(--white);
+    }
+    .field-textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+
+    /* 入力ボタン群（録音・写真・AI） */
+    .input-tools { display: flex; gap: 8px; margin: 8px 0 4px; flex-wrap: wrap; }
+    .tool-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px; border-radius: 999px;
+      background: var(--white); border: 2px solid var(--gray-300);
+      color: var(--gray-700); font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+    .tool-btn:active { transform: scale(0.98); }
+    .tool-btn .material-symbols-outlined { font-size: 18px; }
+    .tool-btn.recording {
+      background: var(--danger); border-color: var(--danger); color: var(--white);
+      animation: pulse 1.4s infinite;
+    }
+    .tool-btn.busy { opacity: 0.5; pointer-events: none; }
+    .tool-btn.ai { color: var(--brand-700); border-color: var(--brand-300); }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+    }
+
+    .photos-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;
+    }
+    .photo-thumb {
+      aspect-ratio: 1; border-radius: 8px; background: var(--gray-100); position: relative;
+      overflow: hidden;
+    }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-thumb .remove {
+      position: absolute; top: 4px; right: 4px;
+      width: 24px; height: 24px; border-radius: 50%; border: none;
+      background: rgba(0,0,0,0.6); color: var(--white);
+      font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .ai-notice {
+      font-size: 12px; color: var(--gray-500); margin-top: 8px;
+      padding: 8px 12px; background: var(--gray-50); border-radius: 8px;
+      border-left: 3px solid var(--brand-300);
+    }
+
+    .suggestion-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .suggestion-chip {
+      font-size: 12px; padding: 8px 12px; border-radius: 999px;
+      background: var(--brand-50); color: var(--brand-700); border: 1px solid var(--brand-200);
+      cursor: pointer;
+    }
+
+    /* 確認ペイン */
+    .review-card {
+      background: var(--white); border: 2px solid var(--gray-200); border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 10px;
+    }
+    .review-card .label { font-size: 11px; font-weight: 700; color: var(--gray-500); letter-spacing: 1px; }
+    .review-card .value { font-size: 15px; margin-top: 4px; line-height: 1.6; white-space: pre-wrap; }
+
+    /* フッター */
+    .nav-footer {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px; padding: 12px 16px;
+      background: var(--white); border-top: 1px solid var(--gray-200);
+      display: flex; gap: 8px; z-index: 10;
+    }
+    .nav-btn {
+      flex: 1; padding: 14px; border-radius: 12px; border: none;
+      font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 1px;
+    }
+    .nav-btn:active { transform: scale(0.98); }
+    .nav-btn.secondary { background: var(--gray-100); color: var(--gray-700); }
+    .nav-btn.primary { background: var(--brand-500); color: var(--white); }
+    .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* 完了画面 */
+    .done-screen { text-align: center; padding: 60px 24px; }
+    .done-icon {
+      width: 80px; height: 80px; border-radius: 50%; background: var(--brand-100);
+      display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;
+    }
+    .done-icon .material-symbols-outlined { font-size: 48px; color: var(--brand-600); }
+    .done-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
+    .done-actions a, .done-actions button {
+      padding: 14px; border-radius: 12px; text-decoration: none;
+      font-size: 15px; font-weight: 700; text-align: center; cursor: pointer; border: none;
+    }
+    .done-actions .primary { background: var(--brand-500); color: var(--white); }
+    .done-actions .secondary { background: var(--gray-100); color: var(--gray-700); }
   </style>
 </head>
 <body>
   <div class="header">
-    <button class="header-back" onclick="location.href='/simple/'+location.search">&larr;</button>
-    <h1>きろくする</h1>
+    <button class="header-back" id="header-back">&larr;</button>
+    <h1 id="header-title">きろくする</h1>
   </div>
 
-  <div class="content">
-    <div class="placeholder">
-      <span class="material-symbols-outlined big-icon">edit_note</span>
-      <h2>準備中です</h2>
-      <p>
-        受診を3つのステップで簡単に記録できる画面を準備中です。<br>
-        音声で話した内容をそのまま残せるようになる予定です。
-      </p>
-      <p class="next">いまは「くわしい」モードで記録できます</p>
+  <div class="progress-bar" id="progress-bar"></div>
+
+  <!-- Step 1: どこで -->
+  <div class="pane" id="pane-1">
+    <div class="pane-title">どこで受診した？</div>
+    <div class="pane-sub">かかりつけ病院と診療科を選んでください。</div>
+
+    <div class="field-block">
+      <div class="field-label">受診日</div>
+      <input type="date" id="visit-date" class="field-input">
     </div>
 
-    <a class="alt-link" href="/timeline-edit.html">→ 詳細モードで記録する</a>
+    <div id="clinic-list">
+      <div class="loading"><div class="loading-spinner"></div><p class="mt-8 text-sm text-muted">読み込み中...</p></div>
+    </div>
   </div>
+
+  <!-- Step 2: なに言われた -->
+  <div class="pane" id="pane-2">
+    <div class="pane-title">なに言われた？</div>
+    <div class="pane-sub">医師から言われたことを書いてください。音声で話したり、処方箋・検査結果の写真を添付してもOKです。</div>
+
+    <div class="field-block">
+      <div class="field-label">言われたこと（findings）</div>
+      <textarea id="raw-text" class="field-textarea" placeholder="例: VEGFは正常範囲、レブラミドは続けて、3ヶ月後に再診..."></textarea>
+      <div class="input-tools">
+        <button class="tool-btn" id="btn-record">
+          <span class="material-symbols-outlined">mic</span>
+          <span class="btn-label">録音</span>
+        </button>
+        <label class="tool-btn" for="photo-input">
+          <span class="material-symbols-outlined">add_a_photo</span>
+          写真を追加
+        </label>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" multiple style="display:none">
+        <button class="tool-btn ai" id="btn-ai-format">
+          <span class="material-symbols-outlined">auto_fix_high</span>
+          AIで整える
+        </button>
+      </div>
+      <div class="ai-notice">AIは入力を整えるだけです。診断や治療方針は判断しません。</div>
+      <div class="photos-grid" id="photos-grid"></div>
+    </div>
+  </div>
+
+  <!-- Step 3: つぎは -->
+  <div class="pane" id="pane-3">
+    <div class="pane-title">つぎは？</div>
+    <div class="pane-sub">次回までにすること（薬の飲み方・予約・気をつけることなど）を書いてください。</div>
+
+    <div class="field-block">
+      <div class="field-label">次回までにすること（nextAction）</div>
+      <textarea id="next-action" class="field-textarea" placeholder="例: 血液検査の予約を取る、レブラミドを毎日飲む..."></textarea>
+      <div class="input-tools">
+        <button class="tool-btn" id="btn-record-2">
+          <span class="material-symbols-outlined">mic</span>
+          <span class="btn-label">録音</span>
+        </button>
+      </div>
+      <div class="suggestion-chips" id="suggestion-chips"></div>
+    </div>
+
+    <div class="field-block">
+      <div class="field-label">次回の受診予定（任意）</div>
+      <input type="date" id="next-visit-date" class="field-input">
+    </div>
+  </div>
+
+  <!-- Step 4: 確認 -->
+  <div class="pane" id="pane-4">
+    <div class="pane-title">この内容で記録しますか？</div>
+    <div class="pane-sub">あとから編集もできます。</div>
+    <div id="review-list"></div>
+  </div>
+
+  <!-- 完了 -->
+  <div class="pane" id="pane-done">
+    <div class="done-screen">
+      <div class="done-icon">
+        <span class="material-symbols-outlined">check</span>
+      </div>
+      <div class="pane-title">記録しました</div>
+      <div class="pane-sub">タイムラインにも追加されています。</div>
+      <div class="done-actions">
+        <button class="primary" id="btn-record-another">もう一件記録する</button>
+        <a class="secondary" id="link-home" href="/simple/">ホームに戻る</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ナビゲーション -->
+  <div class="nav-footer" id="nav-footer">
+    <button class="nav-btn secondary" id="btn-prev">もどる</button>
+    <button class="nav-btn primary" id="btn-next">つぎへ</button>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script src="/js/visit-recorder.js"></script>
+  <script>
+    const TOTAL_STEPS = 4;
+    const DRAFT_KEY = "yorisoi_visit_draft";
+    let currentStep = 1;
+    let clinics = [];
+    let draft = {
+      date: new Date().toISOString().slice(0, 10),
+      clinicId: null,
+      clinicName: null,
+      department: null,
+      rawText: "",
+      findings: "",
+      nextActionDraft: "",
+      nextAction: "",
+      nextVisitDate: null,
+      suggestions: { medicationChange: false, newLab: false, newProcedure: false },
+      photos: [],
+    };
+
+    function escHTML(s) {
+      const d = document.createElement("div");
+      d.textContent = s || "";
+      return d.innerHTML;
+    }
+
+    function loadDraft() {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        try { Object.assign(draft, JSON.parse(saved)); } catch (e) {}
+      }
+    }
+    function saveDraft() {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }
+    function clearDraft() {
+      sessionStorage.removeItem(DRAFT_KEY);
+    }
+
+    function renderProgress() {
+      const bar = document.getElementById("progress-bar");
+      let html = "";
+      for (let i = 1; i <= TOTAL_STEPS; i++) {
+        const cls = i === currentStep ? "active" : (i < currentStep ? "done" : "");
+        html += `<div class="progress-dot ${cls}"></div>`;
+      }
+      bar.innerHTML = html;
+    }
+
+    function showPane(step) {
+      document.querySelectorAll(".pane").forEach((p) => p.classList.remove("active"));
+      const id = step === "done" ? "pane-done" : `pane-${step}`;
+      document.getElementById(id).classList.add("active");
+      currentStep = step === "done" ? TOTAL_STEPS : step;
+      if (step === TOTAL_STEPS) renderReview();
+      renderProgress();
+      updateNav();
+      window.scrollTo(0, 0);
+    }
+
+    function updateNav() {
+      const footer = document.getElementById("nav-footer");
+      const prev = document.getElementById("btn-prev");
+      const next = document.getElementById("btn-next");
+      if (document.getElementById("pane-done").classList.contains("active")) {
+        footer.style.display = "none";
+        return;
+      }
+      footer.style.display = "flex";
+      prev.style.visibility = currentStep === 1 ? "hidden" : "visible";
+      if (currentStep === TOTAL_STEPS) {
+        next.textContent = "保存する";
+      } else {
+        next.textContent = "つぎへ";
+      }
+    }
+
+    function canAdvance() {
+      if (currentStep === 1) return draft.clinicId && draft.department;
+      // Step 2/3 は空欄でも許容（あとから編集できる）
+      return true;
+    }
+
+    // === Step 1: クリニック選択 ===
+    async function loadClinics() {
+      try {
+        clinics = await apiGet("/api/clinics");
+        renderClinicList();
+      } catch (err) {
+        console.error("load clinics error:", err);
+        document.getElementById("clinic-list").innerHTML =
+          '<p class="text-sm" style="color:var(--danger);text-align:center;">読み込みに失敗しました</p>';
+      }
+    }
+
+    function renderClinicList() {
+      const root = document.getElementById("clinic-list");
+      if (!clinics.length) {
+        root.innerHTML = `
+          <div class="empty-clinic">
+            <span class="material-symbols-outlined">local_hospital</span>
+            <p class="mt-8 text-sm">かかりつけ病院がまだ登録されていません</p>
+            <a class="empty-clinic-cta" href="/simple/clinics.html${location.search}">かかりつけを登録する</a>
+          </div>`;
+        return;
+      }
+      const html = clinics.map((c) => `
+        <div class="clinic-pick ${c.isPrimary ? 'primary' : ''} ${c.id === draft.clinicId ? 'selected' : ''}" data-clinic-id="${c.id}">
+          <div class="clinic-pick-name">${escHTML(c.name)}${c.isPrimary ? '<span class="primary-tag">メイン</span>' : ''}</div>
+          <div class="dept-chips" data-clinic-id="${c.id}">
+            ${(c.departments || []).map(d => `
+              <span class="dept-chip ${c.id === draft.clinicId && d === draft.department ? 'selected' : ''}" data-clinic-id="${c.id}" data-dept="${escHTML(d)}">${escHTML(d)}</span>
+            `).join("")}
+          </div>
+        </div>
+      `).join("");
+      root.innerHTML = html;
+      // 診療科チップにイベント
+      root.querySelectorAll(".dept-chip").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          const cid = chip.dataset.clinicId;
+          const dept = chip.dataset.dept;
+          const c = clinics.find((cc) => cc.id === cid);
+          draft.clinicId = cid;
+          draft.clinicName = c.name;
+          draft.department = dept;
+          saveDraft();
+          renderClinicList();
+        });
+      });
+    }
+
+    // === ペインがアクティブになる時に値を反映 ===
+    function syncPaneToDraft() {
+      // Step1
+      document.getElementById("visit-date").value = draft.date;
+      // Step2 — findings が AI整形済みなら textarea にも反映し draft.rawText も合わせる
+      const rt = document.getElementById("raw-text");
+      const rtValue = draft.rawText || draft.findings || "";
+      rt.value = rtValue;
+      if (rtValue && !draft.rawText) { draft.rawText = rtValue; saveDraft(); }
+      renderPhotosGrid();
+      // Step3 — nextActionDraft を初期値にしたとき draft.nextAction にも同期
+      const na = document.getElementById("next-action");
+      const naValue = draft.nextAction || draft.nextActionDraft || "";
+      na.value = naValue;
+      if (naValue && !draft.nextAction) { draft.nextAction = naValue; saveDraft(); }
+      document.getElementById("next-visit-date").value = draft.nextVisitDate || "";
+      renderSuggestionChips();
+    }
+
+    function renderPhotosGrid() {
+      const grid = document.getElementById("photos-grid");
+      grid.innerHTML = draft.photos.map((p, i) => `
+        <div class="photo-thumb">
+          <img src="${p}" alt="photo ${i+1}">
+          <button class="remove" data-i="${i}">×</button>
+        </div>
+      `).join("");
+      grid.querySelectorAll(".remove").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          draft.photos.splice(parseInt(btn.dataset.i, 10), 1);
+          saveDraft();
+          renderPhotosGrid();
+        });
+      });
+    }
+
+    function renderSuggestionChips() {
+      const root = document.getElementById("suggestion-chips");
+      const chips = [];
+      if (draft.nextVisitDate) chips.push({ label: `次回予約 ${draft.nextVisitDate}`, action: "applyNextDate" });
+      if (draft.suggestions?.medicationChange) chips.push({ label: "💊 処方変更あり", action: null });
+      if (draft.suggestions?.newLab) chips.push({ label: "🧪 検査の指示あり", action: null });
+      if (draft.suggestions?.newProcedure) chips.push({ label: "🩺 治療変更あり", action: null });
+      root.innerHTML = chips.map((c, i) => `<span class="suggestion-chip" data-i="${i}">${escHTML(c.label)}</span>`).join("");
+      root.querySelectorAll(".suggestion-chip").forEach((el, i) => {
+        if (chips[i].action === "applyNextDate") {
+          el.addEventListener("click", () => {
+            document.getElementById("next-visit-date").value = draft.nextVisitDate;
+          });
+        }
+      });
+    }
+
+    // === Step 2: 録音・写真・AI ===
+    async function toggleRecord(buttonId, targetTextareaId) {
+      const btn = document.getElementById(buttonId);
+      const ta = document.getElementById(targetTextareaId);
+      if (VisitRecorder.isRecording()) {
+        try {
+          btn.classList.add("busy");
+          btn.classList.remove("recording");
+          btn.querySelector(".btn-label").textContent = "書き起こし中...";
+          const blob = await VisitRecorder.stopRecording();
+          const { transcript } = await VisitRecorder.transcribeBlob(blob);
+          if (transcript) {
+            ta.value = (ta.value ? ta.value + "\n" : "") + transcript;
+            ta.dispatchEvent(new Event("input"));
+          }
+        } catch (err) {
+          console.error("transcribe error:", err);
+          alert("書き起こしに失敗しました: " + err.message);
+        } finally {
+          btn.classList.remove("busy");
+          btn.querySelector(".btn-label").textContent = "録音";
+        }
+      } else {
+        try {
+          await VisitRecorder.startRecording();
+          btn.classList.add("recording");
+          btn.querySelector(".btn-label").textContent = "停止";
+        } catch (err) {
+          console.error("startRecording error:", err);
+          alert("マイクの利用が許可されていません: " + err.message);
+        }
+      }
+    }
+
+    async function aiFormat() {
+      const ta = document.getElementById("raw-text");
+      const text = ta.value.trim();
+      if (!text) {
+        alert("先に内容を入力してください");
+        return;
+      }
+      const btn = document.getElementById("btn-ai-format");
+      btn.classList.add("busy");
+      btn.querySelector(".material-symbols-outlined").textContent = "hourglass_top";
+      try {
+        const result = await VisitRecorder.parseVisitText(text, draft.date);
+        draft.rawText = text;
+        draft.findings = result.findings || text;
+        draft.nextActionDraft = result.nextActionDraft || "";
+        draft.nextVisitDate = result.nextVisitDate || null;
+        draft.suggestions = result.suggestions || draft.suggestions;
+        // textarea を整形版で置き換え
+        ta.value = draft.findings;
+        saveDraft();
+        // フィードバック
+        btn.querySelector(".material-symbols-outlined").textContent = "check";
+        setTimeout(() => {
+          btn.classList.remove("busy");
+          btn.querySelector(".material-symbols-outlined").textContent = "auto_fix_high";
+        }, 800);
+      } catch (err) {
+        console.error("parse-visit error:", err);
+        alert("AI整形に失敗しました。手で記入を続けてください。");
+        btn.classList.remove("busy");
+        btn.querySelector(".material-symbols-outlined").textContent = "auto_fix_high";
+      }
+    }
+
+    async function addPhotos(files) {
+      for (const f of files) {
+        try {
+          const dataUri = await VisitRecorder.fileToDataUri(f);
+          draft.photos.push(dataUri);
+        } catch (err) {
+          console.error("photo error:", err);
+        }
+      }
+      saveDraft();
+      renderPhotosGrid();
+    }
+
+    // === 確認ペイン ===
+    function renderReview() {
+      const root = document.getElementById("review-list");
+      const items = [
+        { label: "受診日", value: draft.date },
+        { label: "病院・診療科", value: `${draft.clinicName || ""}　${draft.department || ""}` },
+        { label: "言われたこと", value: draft.findings || draft.rawText || "（未入力）" },
+        { label: "次回までにすること", value: draft.nextAction || "（未入力）" },
+        { label: "次回の受診予定", value: draft.nextVisitDate || "（未定）" },
+      ];
+      let html = items.map((it) => `
+        <div class="review-card">
+          <div class="label">${escHTML(it.label)}</div>
+          <div class="value">${escHTML(it.value)}</div>
+        </div>
+      `).join("");
+      if (draft.photos.length) {
+        html += `<div class="review-card">
+          <div class="label">写真</div>
+          <div class="photos-grid">${draft.photos.map(p => `<div class="photo-thumb"><img src="${p}"></div>`).join("")}</div>
+        </div>`;
+      }
+      root.innerHTML = html;
+    }
+
+    // === 保存 ===
+    async function saveVisit() {
+      const next = document.getElementById("btn-next");
+      next.disabled = true;
+      next.textContent = "保存中...";
+      try {
+        // 1. POST /api/visits
+        const visit = await apiPost("/api/visits", {
+          date: draft.date,
+          clinicId: draft.clinicId,
+          department: draft.department,
+          chiefComplaint: "",
+          findings: draft.findings || draft.rawText || "",
+          nextAction: draft.nextAction || "",
+          photos: draft.photos,
+          relatedMedicationIds: [],
+          relatedLabResultIds: [],
+          relatedTimelineEventId: null,
+        });
+
+        // 2. POST /api/timeline (category="visit")
+        const findingsExcerpt = (draft.findings || draft.rawText || "").slice(0, 200);
+        const event = await apiPost("/api/timeline", {
+          date: draft.date,
+          category: "visit",
+          title: `${draft.clinicName} ${draft.department} 受診`,
+          detail: findingsExcerpt,
+          source: "manual",
+        });
+
+        // 3. PUT /api/visits/{id} で relatedTimelineEventId を更新
+        if (event && event.id) {
+          await apiPut(`/api/visits/${visit.id}`, { relatedTimelineEventId: event.id });
+        }
+
+        clearDraft();
+        showPane("done");
+      } catch (err) {
+        console.error("save error:", err);
+        alert("保存に失敗しました: " + err.message);
+        next.disabled = false;
+        next.textContent = "保存する";
+      }
+    }
+
+    // === 入力イベント (textarea/input → draft 同期) ===
+    function attachInputs() {
+      document.getElementById("visit-date").addEventListener("change", (e) => {
+        draft.date = e.target.value; saveDraft();
+      });
+      document.getElementById("raw-text").addEventListener("input", (e) => {
+        draft.rawText = e.target.value;
+        if (!draft.findings) draft.findings = e.target.value;
+        else draft.findings = e.target.value; // 直接編集 = findings として扱う
+        saveDraft();
+      });
+      document.getElementById("next-action").addEventListener("input", (e) => {
+        draft.nextAction = e.target.value; saveDraft();
+      });
+      document.getElementById("next-visit-date").addEventListener("change", (e) => {
+        draft.nextVisitDate = e.target.value || null; saveDraft();
+      });
+      document.getElementById("photo-input").addEventListener("change", (e) => {
+        addPhotos(Array.from(e.target.files));
+        e.target.value = "";
+      });
+      document.getElementById("btn-record").addEventListener("click", () => toggleRecord("btn-record", "raw-text"));
+      document.getElementById("btn-record-2").addEventListener("click", () => toggleRecord("btn-record-2", "next-action"));
+      document.getElementById("btn-ai-format").addEventListener("click", aiFormat);
+
+      document.getElementById("btn-prev").addEventListener("click", () => {
+        if (currentStep > 1) {
+          showPane(currentStep - 1);
+          syncPaneToDraft();
+        }
+      });
+      document.getElementById("btn-next").addEventListener("click", () => {
+        if (!canAdvance()) {
+          if (currentStep === 1) alert("病院と診療科を選んでください");
+          return;
+        }
+        if (currentStep === TOTAL_STEPS) {
+          saveVisit();
+          return;
+        }
+        showPane(currentStep + 1);
+        syncPaneToDraft();
+        if (currentStep === TOTAL_STEPS) renderReview();
+      });
+
+      document.getElementById("header-back").addEventListener("click", () => {
+        location.href = "/simple/" + location.search;
+      });
+
+      document.getElementById("btn-record-another").addEventListener("click", () => {
+        // ドラフト初期化して Step1 へ
+        Object.assign(draft, {
+          date: new Date().toISOString().slice(0, 10),
+          clinicId: null, clinicName: null, department: null,
+          rawText: "", findings: "", nextActionDraft: "",
+          nextAction: "", nextVisitDate: null,
+          suggestions: { medicationChange: false, newLab: false, newProcedure: false },
+          photos: [],
+        });
+        clearDraft();
+        showPane(1);
+        syncPaneToDraft();
+        renderClinicList();
+      });
+      document.getElementById("link-home").href = "/simple/" + location.search;
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try { await initLiff(); } catch (_) {}
+      loadDraft();
+      attachInputs();
+      syncPaneToDraft();
+      showPane(1);
+      await loadClinics();
+    });
+  </script>
 </body>
 </html>
