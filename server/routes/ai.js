@@ -629,6 +629,68 @@ ${rawText}
   }
 });
 
+// ======================================================
+// POST /api/ai/summarize-other-visits
+// 「いま見せる病院」以外の最近の受診を、医師に伝える1文の箇条書きに整形
+// body: {
+//   diseaseId,
+//   currentClinic: { name, departments: [...] },
+//   otherVisits: [{ date, clinicName, department, findings, nextAction }, ...]
+// }
+// ======================================================
+router.post("/summarize-other-visits", async (req, res) => {
+  try {
+    const { diseaseId, currentClinic, otherVisits } = req.body;
+    if (!Array.isArray(otherVisits) || otherVisits.length === 0) {
+      return res.json({ summary: "" });
+    }
+
+    const tmpl = getTemplate(diseaseId || "uc");
+    const diseaseName = tmpl?.name || "";
+    const currentName = currentClinic?.name || "今日のクリニック";
+    const currentDepts = (currentClinic?.departments || []).join("・") || "未指定";
+
+    const visitsText = otherVisits.map((v, i) => {
+      return `${i + 1}. ${v.date}  ${v.department}（${v.clinicName}）
+   findings: ${v.findings || ""}
+   nextAction: ${v.nextAction || ""}`;
+    }).join("\n");
+
+    const prompt = `「他のクリニックでこんなことを言われた」を医師に短く伝えるための箇条書きを作ります。
+
+## 状況
+患者は今、${currentName}（${currentDepts}）の診察室にいます。
+医師が${diseaseName}の患者の他クリニックでの最近の出来事を知りたがっています。
+
+## 厳守事項
+- 与えられた findings / nextAction の内容を**短く言い換える**だけ
+- 創作・補完・診断・治療方針評価は禁止
+- 不明な情報は書かない
+- 各クリニック1行・最大40字程度（医師がパッと読める長さ）
+- フォーマット: "・<診療科>（<クリニック略称>, <月>月）: <要約>"
+
+## 与えられた他クリニックの受診（直近順）
+${visitsText}
+
+## 出力JSON（これ以外は出力しない）
+{ "summary": "<改行区切りの箇条書き>" }`;
+
+    const model = getTextModel();
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const parsed = parseJsonSafe(responseText);
+
+    if (!parsed) {
+      return res.status(500).json({ error: "Failed to parse AI response", raw: responseText.slice(0, 500) });
+    }
+
+    res.json({ summary: typeof parsed.summary === "string" ? parsed.summary : "" });
+  } catch (err) {
+    console.error("summarize-other-visits error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ヘルスチェック
 router.get("/health", (_req, res) => res.json({ ok: true, hasKey: hasApiKey() }));
 

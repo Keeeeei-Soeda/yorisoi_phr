@@ -7,43 +7,412 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" />
   <style>
-    .placeholder {
-      text-align: center; padding: 60px 24px;
-      background: var(--white); border-radius: 16px;
-      border: 2px dashed var(--brand-200);
+    body { background: var(--gray-50); padding: 0; }
+    .page-header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+      color: var(--white);
+      display: flex; align-items: center; gap: 12px;
     }
-    .placeholder .big-icon { font-size: 72px; color: var(--brand-300); }
-    .placeholder h2 { font-size: 20px; margin-top: 12px; letter-spacing: 1.5px; }
-    .placeholder p { font-size: 14px; color: var(--gray-600); line-height: 1.7; margin-top: 12px; letter-spacing: 0.5px; }
-    .placeholder .next { font-size: 13px; color: var(--gray-500); margin-top: 16px; }
-    .alt-link {
-      display: block; text-align: center; padding: 12px;
-      background: var(--brand-50); color: var(--brand-700);
-      border-radius: 12px; text-decoration: none;
-      font-size: 14px; font-weight: 600; margin-top: 16px;
+    .back-btn { background: none; border: none; color: var(--white); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+    .page-header h1 { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+
+    /* タブ */
+    .tabs { display: flex; background: var(--white); border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 10; }
+    .tab {
+      flex: 1; padding: 14px 8px; text-align: center; font-size: 14px; font-weight: 700;
+      color: var(--gray-500); border-bottom: 3px solid transparent; cursor: pointer; letter-spacing: 1px;
+      background: none; border-left: none; border-right: none; border-top: none;
+    }
+    .tab.active { color: var(--brand-600); border-bottom-color: var(--brand-500); background: var(--brand-50); }
+
+    .tab-content { padding: 16px; display: none; }
+    .tab-content.active { display: block; }
+
+    /* パネル */
+    .panel { background: var(--white); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .panel-title { font-size: 13px; font-weight: 700; color: var(--gray-500); margin-bottom: 10px; letter-spacing: 1.5px; display: flex; align-items: center; gap: 6px; }
+    .panel-title .material-symbols-outlined { font-size: 18px; color: var(--brand-500); }
+
+    /* パネル1: クリニック選択 */
+    .clinic-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .clinic-btn {
+      padding: 14px 10px; border-radius: 12px;
+      border: 2px solid var(--gray-200); background: var(--white);
+      text-align: left; cursor: pointer; transition: all 0.15s;
+      font-size: 13px; font-weight: 600; color: var(--gray-700);
+      display: flex; flex-direction: column; gap: 4px; min-height: 60px;
+    }
+    .clinic-btn:active { transform: scale(0.98); }
+    .clinic-btn.selected { border-color: var(--brand-500); background: var(--brand-50); color: var(--brand-700); }
+    .clinic-btn .star { color: #f59e0b; }
+    .clinic-btn .dept { font-size: 11px; color: var(--gray-500); font-weight: 500; }
+    .clinic-btn.selected .dept { color: var(--brand-600); }
+
+    /* パネル2: 他クリニック要約 */
+    .other-visit { padding: 12px 0; border-bottom: 1px solid var(--gray-100); }
+    .other-visit:last-child { border-bottom: none; }
+    .other-visit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+    .ov-dept { font-size: 11px; font-weight: 700; color: #fff; padding: 2px 8px; border-radius: 10px; }
+    .ov-clinic { font-size: 12px; color: var(--gray-700); font-weight: 600; }
+    .ov-date { font-size: 11px; color: var(--gray-500); margin-left: auto; }
+    .ov-content { font-size: 13px; color: var(--gray-700); line-height: 1.55; margin-top: 2px; white-space: pre-wrap; }
+    .ov-next { font-size: 12px; color: var(--brand-700); margin-top: 6px; padding-left: 8px; border-left: 3px solid var(--brand-300); white-space: pre-wrap; }
+
+    .ai-summary-btn {
+      width: 100%; margin-top: 12px; padding: 12px; border-radius: 12px;
+      background: var(--brand-50); border: 1.5px dashed var(--brand-400); color: var(--brand-700);
+      font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;
+    }
+    .ai-summary-btn:active { transform: scale(0.99); }
+    .ai-summary-btn .material-symbols-outlined { font-size: 18px; }
+    .ai-summary-result {
+      margin-top: 12px; padding: 14px; background: #fef9c3; border: 1px solid #fde047;
+      border-radius: 12px; font-size: 13px; line-height: 1.7; color: var(--gray-800); white-space: pre-wrap;
+    }
+
+    /* パネル3: 薬と検査 */
+    .med-list { display: flex; flex-direction: column; gap: 6px; }
+    .med-row { display: flex; align-items: baseline; gap: 6px; font-size: 13px; }
+    .med-row .pill { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-400); flex-shrink: 0; }
+    .med-name { font-weight: 700; color: var(--gray-800); }
+    .med-form { font-size: 11px; color: var(--gray-500); }
+    .lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .lab-item { font-size: 12px; padding: 6px 10px; background: var(--gray-50); border-radius: 8px; }
+    .lab-item .lab-label { color: var(--gray-600); font-size: 11px; }
+    .lab-item .lab-value { font-weight: 700; color: var(--gray-800); margin-left: 4px; }
+    .section-sub { font-size: 12px; font-weight: 700; color: var(--gray-600); margin: 12px 0 6px; }
+    .section-sub:first-child { margin-top: 0; }
+
+    .empty { padding: 32px; text-align: center; color: var(--gray-500); font-size: 13px; }
+
+    .footer-note { text-align: center; font-size: 11px; color: var(--gray-500); padding: 16px; }
+    .print-btn {
+      display: block; margin: 0 auto 16px; padding: 10px 24px;
+      background: var(--white); border: 1.5px solid var(--gray-300); border-radius: 20px;
+      color: var(--gray-700); font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+
+    /* 印刷用 */
+    @media print {
+      .tabs, .ai-summary-btn, .print-btn, .back-btn { display: none !important; }
+      .tab-content { display: block !important; padding: 8px; }
+      body { background: #fff; }
+      .panel { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <button class="header-back" onclick="location.href='/simple/'+location.search">&larr;</button>
+  <div class="page-header">
+    <button class="back-btn" id="back-btn">&larr;</button>
     <h1>みせる</h1>
   </div>
 
-  <div class="content">
-    <div class="placeholder">
-      <span class="material-symbols-outlined big-icon">co_present</span>
-      <h2>準備中です</h2>
-      <p>
-        医師に見せるための<br>
-        「きょうのため」（このクリニック向け）と<br>
-        「ぜんしんてき」（すべての診療科向け）の<br>
-        2つの画面を準備中です。
-      </p>
-      <p class="next">いまは「くわしい」モードのサマリーがあります</p>
+  <div class="tabs">
+    <button class="tab active" data-tab="here">このびょういん向け</button>
+    <button class="tab" data-tab="all">ぜんしんてき</button>
+  </div>
+
+  <!-- タブA: このびょういん向け -->
+  <div class="tab-content active" id="tab-here">
+    <div class="panel">
+      <div class="panel-title"><span class="material-symbols-outlined">local_hospital</span>今日見せる病院を選んでください</div>
+      <div class="clinic-select-grid" id="clinic-select"></div>
     </div>
 
-    <a class="alt-link" href="/summary.html">→ 現在のサマリーを見る（詳細モード）</a>
+    <div class="panel">
+      <div class="panel-title"><span class="material-symbols-outlined">forum</span>他のクリニックでのお話</div>
+      <div id="other-visits"></div>
+      <button class="ai-summary-btn" id="ai-summary-btn">
+        <span class="material-symbols-outlined">auto_awesome</span>AI で1文に要約する
+      </button>
+      <div id="ai-summary-result" style="display:none;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span class="material-symbols-outlined">medication</span>いま飲んでいる薬</div>
+      <div id="active-meds"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span class="material-symbols-outlined">science</span>直近の検査値</div>
+      <div id="latest-labs"></div>
+    </div>
   </div>
+
+  <!-- タブB: ぜんしんてき -->
+  <div class="tab-content" id="tab-all">
+    <div class="panel">
+      <div class="panel-title"><span class="material-symbols-outlined">calendar_view_month</span>すべての診療科の最近の受診</div>
+      <div id="all-visits"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span class="material-symbols-outlined">medication</span>いま飲んでいる薬（全部）</div>
+      <div id="all-meds"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span class="material-symbols-outlined">science</span>直近の検査値</div>
+      <div id="all-labs"></div>
+    </div>
+  </div>
+
+  <button class="print-btn" onclick="window.print()">この画面を印刷する</button>
+  <p class="footer-note">この画面を医師に見せています</p>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script>
+    let allVisits = [];
+    let allClinics = [];
+    let allMeds = [];
+    let allLabs = [];
+    let selectedClinicId = null;
+    let template = null;
+
+    // 診療科ハッシュ → 色
+    const DEPT_COLORS = ["#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#ec4899", "#0891b2", "#ef4444", "#6366f1"];
+    function deptColor(dept) {
+      if (!dept) return "#94a3b8";
+      let h = 0;
+      for (let i = 0; i < dept.length; i++) h = (h * 31 + dept.charCodeAt(i)) >>> 0;
+      return DEPT_COLORS[h % DEPT_COLORS.length];
+    }
+
+    function shortDate(s) {
+      if (!s || s.length < 10) return s || "";
+      return `${parseInt(s.slice(5,7))}月${parseInt(s.slice(8,10))}日`;
+    }
+    function ymd(s) {
+      if (!s || s.length < 10) return s || "";
+      return s.replace(/-/g, "/");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const ctx = await initLiff();
+      template = ctx.template;
+      if (template?.color) document.querySelector(".page-header").style.background = `linear-gradient(135deg, ${template.color}, ${template.color}dd)`;
+
+      const q = "?disease=" + encodeURIComponent(ctx.diseaseId);
+      document.getElementById("back-btn").onclick = () => location.href = "/simple/" + q;
+
+      // タブ切替
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+          document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"));
+          tab.classList.add("active");
+          document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+        });
+      });
+
+      // データ並行取得
+      const [visits, clinics, meds, labs] = await Promise.all([
+        apiGet("/api/visits").catch(() => []),
+        apiGet("/api/clinics").catch(() => []),
+        apiGet("/api/medications").catch(() => []),
+        apiGet("/api/labs").catch(() => []),
+      ]);
+      allVisits = (Array.isArray(visits) ? visits : (visits.visits || []))
+        .slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      allClinics = Array.isArray(clinics) ? clinics : (clinics.clinics || []);
+      allMeds = Array.isArray(meds) ? meds : (meds.medications || []);
+      allLabs = (Array.isArray(labs) ? labs : (labs.labs || []))
+        .slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+      // 初期選択クリニック: 直近受診の clinicId、なければ Primary、なければ最初
+      const recent = allVisits[0];
+      selectedClinicId = (recent && recent.clinicId)
+        || (allClinics.find((c) => c.isPrimary) || {}).id
+        || (allClinics[0] || {}).id
+        || null;
+
+      renderClinicSelect();
+      renderOtherVisits();
+      renderActiveMeds();
+      renderLatestLabs();
+      renderAllVisits();
+      renderAllMeds();
+      renderAllLabs();
+
+      document.getElementById("ai-summary-btn").addEventListener("click", onAiSummary);
+    });
+
+    function clinicById(id) { return allClinics.find((c) => c.id === id); }
+
+    function renderClinicSelect() {
+      const grid = document.getElementById("clinic-select");
+      if (!allClinics.length) { grid.innerHTML = '<p class="empty">かかりつけクリニックがまだ登録されていません。<br>設定 → かかりつけ病院から追加してください。</p>'; return; }
+      const sorted = [...allClinics].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+      grid.innerHTML = sorted.map((c) => {
+        const star = c.isPrimary ? '<span class="star">★</span>' : '';
+        const depts = (c.departments || []).join("・");
+        return `
+          <button class="clinic-btn ${c.id === selectedClinicId ? 'selected' : ''}" data-id="${c.id}">
+            <div>${star}${escapeHtml(c.name)}</div>
+            <div class="dept">${escapeHtml(depts)}</div>
+          </button>`;
+      }).join("");
+      grid.querySelectorAll(".clinic-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedClinicId = btn.dataset.id;
+          renderClinicSelect();
+          renderOtherVisits();
+          // AI要約はクリア
+          document.getElementById("ai-summary-result").style.display = "none";
+        });
+      });
+    }
+
+    function getOtherVisits(limitPerClinic = 1, maxTotal = 4) {
+      // 選択クリニック以外の visits を、各クリニック直近 limitPerClinic 件、合計 maxTotal 件まで
+      const seen = new Map(); // clinicId -> count
+      const out = [];
+      for (const v of allVisits) {
+        if (!v.clinicId || v.clinicId === selectedClinicId) continue;
+        const c = seen.get(v.clinicId) || 0;
+        if (c >= limitPerClinic) continue;
+        seen.set(v.clinicId, c + 1);
+        out.push(v);
+        if (out.length >= maxTotal) break;
+      }
+      return out;
+    }
+
+    function renderOtherVisits() {
+      const wrap = document.getElementById("other-visits");
+      const others = getOtherVisits();
+      if (!others.length) {
+        wrap.innerHTML = '<p class="empty">他のクリニックでの記録がまだありません。<br>「きろくする」から受診を記録してください。</p>';
+        document.getElementById("ai-summary-btn").style.display = "none";
+        return;
+      }
+      document.getElementById("ai-summary-btn").style.display = "flex";
+      wrap.innerHTML = others.map((v) => {
+        const c = clinicById(v.clinicId) || { name: "未登録" };
+        const color = deptColor(v.department);
+        return `
+          <div class="other-visit">
+            <div class="other-visit-head">
+              <span class="ov-dept" style="background:${color}">${escapeHtml(v.department || "")}</span>
+              <span class="ov-clinic">${escapeHtml(c.name)}</span>
+              <span class="ov-date">${ymd(v.date)}</span>
+            </div>
+            <div class="ov-content">${escapeHtml(v.findings || "")}</div>
+            ${v.nextAction ? `<div class="ov-next">${escapeHtml(v.nextAction)}</div>` : ''}
+          </div>`;
+      }).join("");
+    }
+
+    async function onAiSummary() {
+      const btn = document.getElementById("ai-summary-btn");
+      const result = document.getElementById("ai-summary-result");
+      const others = getOtherVisits();
+      if (!others.length) return;
+      const currentClinic = clinicById(selectedClinicId);
+      btn.disabled = true;
+      btn.innerHTML = '<span class="material-symbols-outlined" style="animation:spin 1s linear infinite">sync</span>要約しています...';
+      try {
+        const res = await apiPost("/api/ai/summarize-other-visits", {
+          diseaseId: getDiseaseId(),
+          currentClinic: { name: currentClinic?.name, departments: currentClinic?.departments || [] },
+          otherVisits: others.map((v) => ({
+            date: v.date,
+            clinicName: (clinicById(v.clinicId) || {}).name || "",
+            department: v.department || "",
+            findings: v.findings || "",
+            nextAction: v.nextAction || "",
+          })),
+        });
+        result.style.display = "block";
+        // AIが改行を入れずに返した場合に備えて、「・」の手前に改行を入れる
+        const formatted = (res.summary || "")
+          .replace(/\s*[・･]\s*/g, "\n・")
+          .replace(/^\n/, "")
+          .trim();
+        result.textContent = formatted || "（要約結果が空でした）";
+      } catch (err) {
+        result.style.display = "block";
+        result.textContent = "AI要約に失敗しました: " + (err.message || err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined">auto_awesome</span>もう一度要約する';
+      }
+    }
+
+    function renderActiveMeds() {
+      const wrap = document.getElementById("active-meds");
+      const active = allMeds.filter((m) => m.isActive !== false);
+      if (!active.length) { wrap.innerHTML = '<p class="empty">登録なし</p>'; return; }
+      wrap.innerHTML = `<div class="med-list">` + active.map((m) => `
+        <div class="med-row">
+          <span class="pill"></span>
+          <span class="med-name">${escapeHtml(m.name)}</span>
+          <span class="med-form">(${escapeHtml(m.dosageForm || '')})</span>
+        </div>`).join("") + `</div>`;
+    }
+
+    function renderLatestLabs() {
+      const wrap = document.getElementById("latest-labs");
+      const latest = allLabs[0];
+      if (!latest || !latest.values) { wrap.innerHTML = '<p class="empty">登録なし</p>'; return; }
+      const items = template?.labConfig?.items || [];
+      const itemMap = new Map(items.map((it) => [it.id, it]));
+      const rows = Object.entries(latest.values)
+        .filter(([, v]) => v !== null && v !== undefined)
+        .slice(0, 8)
+        .map(([k, v]) => {
+          const it = itemMap.get(k);
+          return `<div class="lab-item"><span class="lab-label">${escapeHtml(it?.label || k)}</span><span class="lab-value">${escapeHtml(String(v))}${it?.unit ? ' ' + it.unit : ''}</span></div>`;
+        }).join("");
+      wrap.innerHTML = `<div class="section-sub">${ymd(latest.date)}</div><div class="lab-grid">${rows}</div>`;
+    }
+
+    /* ----- タブB ----- */
+    function renderAllVisits() {
+      const wrap = document.getElementById("all-visits");
+      const six = allVisits.slice(0, 6);
+      if (!six.length) { wrap.innerHTML = '<p class="empty">受診記録がまだありません</p>'; return; }
+      wrap.innerHTML = six.map((v) => {
+        const c = clinicById(v.clinicId) || { name: "未登録" };
+        const color = deptColor(v.department);
+        const star = c.isPrimary ? '★' : '';
+        return `
+          <div class="other-visit">
+            <div class="other-visit-head">
+              <span class="ov-dept" style="background:${color}">${escapeHtml(v.department || "")}</span>
+              <span class="ov-clinic">${star}${escapeHtml(c.name)}</span>
+              <span class="ov-date">${ymd(v.date)}</span>
+            </div>
+            <div class="ov-content">${escapeHtml(v.findings || "")}</div>
+          </div>`;
+      }).join("");
+    }
+    function renderAllMeds() {
+      const wrap = document.getElementById("all-meds");
+      const active = allMeds.filter((m) => m.isActive !== false);
+      if (!active.length) { wrap.innerHTML = '<p class="empty">登録なし</p>'; return; }
+      wrap.innerHTML = `<div class="med-list">` + active.map((m) => `
+        <div class="med-row">
+          <span class="pill"></span>
+          <span class="med-name">${escapeHtml(m.name)}</span>
+          <span class="med-form">(${escapeHtml(m.dosageForm || '')})</span>
+        </div>`).join("") + `</div>`;
+    }
+    function renderAllLabs() {
+      const wrap = document.getElementById("all-labs");
+      const latest = allLabs[0];
+      if (!latest || !latest.values) { wrap.innerHTML = '<p class="empty">登録なし</p>'; return; }
+      const items = template?.labConfig?.items || [];
+      const itemMap = new Map(items.map((it) => [it.id, it]));
+      const rows = Object.entries(latest.values)
+        .filter(([, v]) => v !== null && v !== undefined)
+        .map(([k, v]) => {
+          const it = itemMap.get(k);
+          return `<div class="lab-item"><span class="lab-label">${escapeHtml(it?.label || k)}</span><span class="lab-value">${escapeHtml(String(v))}${it?.unit ? ' ' + it.unit : ''}</span></div>`;
+        }).join("");
+      wrap.innerHTML = `<div class="section-sub">${ymd(latest.date)}</div><div class="lab-grid">${rows}</div>`;
+    }
+  </script>
+  <style>@keyframes spin { from {transform:rotate(0)} to {transform:rotate(360deg)} }</style>
 </body>
 </html>
