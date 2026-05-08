@@ -11,6 +11,27 @@
     .timeline-item { position: relative; margin-bottom: 16px; }
     .timeline-dot { position: absolute; left: -24px; top: 18px; width: 16px; height: 16px; border-radius: 50%; background: var(--brand-500); border: 3px solid var(--white); box-shadow: var(--shadow-sm); }
     .year-divider { font-size: 14px; font-weight: 700; color: var(--brand-600); padding: 8px 0; margin-top: 8px; }
+
+    /* クリニック・診療科チップ（タイムラインカード右上） */
+    .visit-chips { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+    .chip-dept { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; color: #fff; line-height: 1.4; white-space: nowrap; }
+    .chip-clinic { font-size: 11px; color: var(--gray-600); padding: 1px 6px; background: var(--gray-100); border-radius: 8px; line-height: 1.4; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-clinic .star { color: #f59e0b; margin-right: 2px; }
+
+    /* クリニック軸フィルタ */
+    .clinic-filter {
+      display: flex; gap: 6px; padding: 12px 4px 4px; overflow-x: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .clinic-filter::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      padding: 6px 12px; border-radius: 16px; border: 1.5px solid var(--gray-300);
+      background: var(--white); font-size: 12px; font-weight: 600; color: var(--gray-700);
+      white-space: nowrap; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+    }
+    .filter-chip.active { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
+    .filter-chip .star { color: #fbbf24; margin-right: 2px; }
+    .filter-chip.active .star { color: #fff; }
   </style>
 </head>
 <body>
@@ -20,6 +41,7 @@
   </div>
 
   <div class="content">
+    <div id="filter-bar"></div>
     <div id="timeline-container">
       <div class="loading"><div class="loading-spinner"></div><p class="mt-8 text-sm text-muted">読み込み中...</p></div>
     </div>
@@ -31,6 +53,21 @@
   <script src="/js/liff-init.js"></script>
   <script>
     let categoryLabels = {};
+    let allEvents = [];
+    let allVisits = [];
+    let allClinics = [];
+    let visitByEventId = new Map();
+    let clinicById = new Map();
+    let activeClinicFilter = "all"; // "all" | "<clinicId>"
+
+    // 診療科ハッシュ → 色（同じ診療科は同じ色になる）
+    const DEPT_COLORS = ["#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#ec4899", "#0891b2", "#ef4444", "#6366f1"];
+    function deptColor(dept) {
+      if (!dept) return "#94a3b8";
+      let h = 0;
+      for (let i = 0; i < dept.length; i++) h = (h * 31 + dept.charCodeAt(i)) >>> 0;
+      return DEPT_COLORS[h % DEPT_COLORS.length];
+    }
 
     document.addEventListener("DOMContentLoaded", async () => {
       try {
@@ -38,18 +75,79 @@
         if (template.color) document.getElementById("page-header").style.background = `linear-gradient(135deg, ${template.color}, ${template.color}dd)`;
         categoryLabels = getCategoryLabels();
 
-        const events = await apiGet("/api/timeline");
-        renderTimeline(events);
+        // 並行取得
+        const [events, visits, clinics] = await Promise.all([
+          apiGet("/api/timeline"),
+          apiGet("/api/visits").catch(() => []),
+          apiGet("/api/clinics").catch(() => []),
+        ]);
+
+        allEvents = events || [];
+        allVisits = (visits && (Array.isArray(visits) ? visits : visits.visits)) || [];
+        allClinics = (clinics && (Array.isArray(clinics) ? clinics : clinics.clinics)) || [];
+
+        // インデックス構築
+        clinicById = new Map(allClinics.map((c) => [c.id, c]));
+        visitByEventId = new Map();
+        allVisits.forEach((v) => {
+          if (v.relatedTimelineEventId) visitByEventId.set(v.relatedTimelineEventId, v);
+        });
+
+        // フィルタ初期値（localStorage）
+        const stored = localStorage.getItem("yorisoi_timeline_clinic_filter");
+        if (stored && (stored === "all" || clinicById.has(stored))) activeClinicFilter = stored;
+
+        renderFilterBar();
+        renderTimeline();
       } catch (err) {
         console.error("Timeline load error:", err);
         document.getElementById("timeline-container").innerHTML = '<p class="text-sm" style="color:var(--danger)">読み込みに失敗しました</p>';
       }
     });
 
-    function renderTimeline(events) {
+    function renderFilterBar() {
+      const bar = document.getElementById("filter-bar");
+      if (!allClinics.length) { bar.innerHTML = ""; return; }
+
+      // メイン → 他クリニック
+      const sorted = [...allClinics].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+      const chips = [
+        `<button class="filter-chip ${activeClinicFilter === "all" ? "active" : ""}" data-id="all">ぜんぶ</button>`,
+        ...sorted.map((c) => {
+          const star = c.isPrimary ? '<span class="star">★</span>' : "";
+          const short = c.name.length > 8 ? c.name.slice(0, 8) + "…" : c.name;
+          return `<button class="filter-chip ${activeClinicFilter === c.id ? "active" : ""}" data-id="${c.id}">${star}${escapeHtml(short)}</button>`;
+        }),
+      ].join("");
+
+      bar.innerHTML = `<div class="clinic-filter">${chips}</div>`;
+      bar.querySelectorAll(".filter-chip").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          activeClinicFilter = btn.dataset.id;
+          localStorage.setItem("yorisoi_timeline_clinic_filter", activeClinicFilter);
+          renderFilterBar();
+          renderTimeline();
+        });
+      });
+    }
+
+    function renderTimeline() {
       const container = document.getElementById("timeline-container");
-      if (!events || events.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128197;</div><p class="empty-state-text">まだイベントがありません。<br>「+」ボタンから治療歴を記録しましょう。</p></div>';
+
+      // フィルタ適用
+      let events = allEvents;
+      if (activeClinicFilter !== "all") {
+        events = allEvents.filter((ev) => {
+          const visit = visitByEventId.get(ev.id);
+          return visit && visit.clinicId === activeClinicFilter;
+        });
+      }
+
+      if (!events.length) {
+        const msg = activeClinicFilter === "all"
+          ? 'まだイベントがありません。<br>「+」ボタンから治療歴を記録しましょう。'
+          : 'このクリニックでの記録はありません。';
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128197;</div><p class="empty-state-text">${msg}</p></div>`;
         return;
       }
 
@@ -62,13 +160,32 @@
         const catLabel = categoryLabels[ev.category] || CATEGORY_LABELS[ev.category] || ev.category;
         const badgeClass = `badge badge-${ev.category}`;
 
+        // visit 紐づきがあればクリニック・診療科チップ
+        const visit = visitByEventId.get(ev.id);
+        let chips = "";
+        if (visit) {
+          const clinic = clinicById.get(visit.clinicId);
+          const dept = visit.department || "";
+          const clinicName = clinic ? clinic.name : "クリニック未登録";
+          const star = clinic && clinic.isPrimary ? '<span class="star">★</span>' : "";
+          const color = deptColor(dept);
+          chips = `
+            <div class="visit-chips">
+              ${dept ? `<span class="chip-dept" style="background:${color}">${escapeHtml(dept)}</span>` : ""}
+              <span class="chip-clinic">${star}${escapeHtml(clinicName)}</span>
+            </div>`;
+        }
+
         html += `
           <div class="timeline-item">
             <div class="timeline-dot"></div>
             <div class="card" onclick="location.href='/timeline-edit.html?id=${ev.id}'" style="cursor:pointer">
-              <div class="flex-between">
-                <span class="card-date">${formatDate(ev.date)}</span>
-                <span class="${badgeClass}">${catLabel}</span>
+              <div class="flex-between" style="align-items:flex-start; gap:10px;">
+                <div style="flex:1; min-width:0;">
+                  <div class="card-date">${formatDate(ev.date)}</div>
+                  <span class="${badgeClass}" style="margin-top:4px; display:inline-block;">${catLabel}</span>
+                </div>
+                ${chips}
               </div>
               <div class="card-title mt-8">${escapeHtml(ev.title)}</div>
               ${ev.detail ? `<div class="card-detail">${escapeHtml(ev.detail)}</div>` : ""}
