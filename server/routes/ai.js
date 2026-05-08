@@ -547,6 +547,88 @@ router.post("/scan-cgm", async (req, res) => {
   }
 });
 
+// ======================================================
+// POST /api/ai/parse-visit
+// 受診時の「言われたこと」を整形して findings/nextAction に分ける
+// body: { rawText: "...", diseaseId, visitDate?: "YYYY-MM-DD" }
+// ======================================================
+router.post("/parse-visit", async (req, res) => {
+  try {
+    const { rawText, diseaseId, visitDate } = req.body;
+    if (!rawText || typeof rawText !== "string") {
+      return res.status(400).json({ error: "rawText required" });
+    }
+
+    const tmpl = getTemplate(diseaseId || "uc");
+    const diseaseName = tmpl?.name || "";
+    const today = visitDate || new Date().toISOString().slice(0, 10);
+
+    const prompt = `患者が受診時に医師から言われた内容を整形します。診断・解釈・治療方針の評価は一切行わず、患者が話した内容を読みやすく整理するだけです。
+
+## やること
+1. rawText を「医師が言ったこと（findings）」と「次回までにすること（nextActionDraft）」に分けて整形
+2. 「次回○日後／○週間後／○月○日」のような言及があれば、受診日（${today}）を起点に nextVisitDate を YYYY-MM-DD で計算
+3. 処方変更／検査指示／治療変更の言及があるかをフラグで返す（true/false）
+
+## 厳守事項（ハルシネーション防止）
+- 入力に書かれていないことは創作・補完しない
+- 医学的解釈・重症度評価・治療方針の示唆は禁止
+- 不明・該当なしの項目は空文字列または null
+- 患者向けにやさしく言い換える程度の整形は OK だが、内容は変えない
+
+## 例
+入力: "今日先生に言われたこと、レブラミドこのまま続けて、VEGFは正常範囲、次は3ヶ月後でいいって。あと血液検査の予約だけ取って帰ること"
+出力: {
+  "findings": "・レブラミドは現状のまま継続\\n・VEGF は正常範囲\\n・治療経過は良好",
+  "nextActionDraft": "・血液検査の予約を取る\\n・3ヶ月後に再診",
+  "nextVisitDate": "<受診日から3ヶ月後>",
+  "suggestions": { "medicationChange": false, "newLab": true, "newProcedure": false }
+}
+
+## 入力（疾患: ${diseaseName}・受診日: ${today}）
+"""
+${rawText}
+"""
+
+## 出力JSON形式（これ以外は出力しない）
+{
+  "findings": "<整形された医師の所見・箇条書き推奨>",
+  "nextActionDraft": "<次回までにすることの箇条書き>",
+  "nextVisitDate": "<YYYY-MM-DD or null>",
+  "suggestions": {
+    "medicationChange": <true or false>,
+    "newLab": <true or false>,
+    "newProcedure": <true or false>
+  }
+}`;
+
+    const model = getTextModel();
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const parsed = parseJsonSafe(responseText);
+
+    if (!parsed) {
+      return res.status(500).json({ error: "Failed to parse AI response", raw: responseText.slice(0, 500) });
+    }
+
+    // サニタイズ
+    const sanitized = {
+      findings: typeof parsed.findings === "string" ? parsed.findings : "",
+      nextActionDraft: typeof parsed.nextActionDraft === "string" ? parsed.nextActionDraft : "",
+      nextVisitDate: /^\d{4}-\d{2}-\d{2}$/.test(parsed.nextVisitDate || "") ? parsed.nextVisitDate : null,
+      suggestions: {
+        medicationChange: !!parsed.suggestions?.medicationChange,
+        newLab: !!parsed.suggestions?.newLab,
+        newProcedure: !!parsed.suggestions?.newProcedure,
+      },
+    };
+    res.json(sanitized);
+  } catch (err) {
+    console.error("parse-visit error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ヘルスチェック
 router.get("/health", (_req, res) => res.json({ ok: true, hasKey: hasApiKey() }));
 
