@@ -3,8 +3,8 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const API_KEY = process.env.GEMINI_API_KEY;
 const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
-// 環境変数で上書き可能（未指定時は Gemini 3.1 Flash Lite Preview）
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite-preview";
+// 環境変数で上書き可能（未指定時は Gemini 3.1 Flash Lite）
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 console.log("Gemini model:", MODEL_NAME);
 
 /**
