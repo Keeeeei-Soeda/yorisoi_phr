@@ -18,10 +18,24 @@
     .simple-header h1 { font-size: 28px; font-weight: 700; letter-spacing: 2px; }
     .simple-header .subtitle { font-size: 13px; opacity: 0.9; margin-top: 6px; letter-spacing: 1px; }
 
-    .menu-area { flex: 1; padding: 28px 20px; display: flex; flex-direction: column; gap: 18px; }
+    .menu-area { flex: 1; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 18px; }
     .home-tagline {
-      text-align: center; padding: 20px 20px 0;
+      text-align: center; padding: 16px 24px 0;
       font-size: 13px; color: var(--gray-600); letter-spacing: 0.5px; line-height: 1.7;
+    }
+
+    /* やさしさカード（無理しなくていいメッセージ） */
+    .gentle-card {
+      margin: 14px 16px 0;
+      padding: 16px 18px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 14px;
+      font-size: 13px; line-height: 1.65;
+      color: #075985;
+    }
+    .gentle-card .material-symbols-outlined {
+      font-size: 18px; vertical-align: -3px; margin-right: 4px; color: #0284c7;
     }
 
     .big-button {
@@ -82,6 +96,65 @@
     .footer-btn.assurance .material-symbols-outlined { color: var(--brand-600); }
 
     .loading-mask { padding: 40px; text-align: center; color: var(--gray-500); }
+
+    /* ============ 困りごと質問モーダル ============ */
+    .intent-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 1000; display: none; align-items: flex-end; justify-content: center;
+    }
+    .intent-overlay.show { display: flex; }
+    .intent-sheet {
+      width: 100%; max-width: 460px;
+      background: #fff; border-radius: 24px 24px 0 0;
+      padding: 22px 22px 24px;
+      max-height: 88vh; overflow-y: auto;
+      animation: sheet-up 0.25s ease-out;
+    }
+    @keyframes sheet-up {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .intent-greet {
+      font-size: 18px; font-weight: 700; color: var(--gray-800);
+      margin-bottom: 4px; letter-spacing: 0.5px;
+    }
+    .intent-sub {
+      font-size: 12.5px; color: var(--gray-500); margin-bottom: 16px; line-height: 1.6;
+    }
+    .intent-list { display: flex; flex-direction: column; gap: 10px; }
+    .intent-btn {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      background: var(--white);
+      border: 2px solid var(--gray-200);
+      border-radius: 14px;
+      font-size: 14px; font-weight: 600; color: var(--gray-800);
+      text-decoration: none;
+      cursor: pointer; text-align: left;
+      transition: all 0.12s;
+      letter-spacing: 0.3px;
+    }
+    .intent-btn:active { transform: scale(0.98); }
+    .intent-btn:hover { border-color: var(--brand-400); background: var(--brand-50); }
+    .intent-btn .material-symbols-outlined {
+      font-size: 26px; color: var(--brand-600);
+      width: 32px; flex-shrink: 0; text-align: center;
+    }
+    .intent-btn .it-label { flex: 1; line-height: 1.4; }
+    .intent-btn .it-label .it-sub {
+      display: block; font-size: 11.5px; font-weight: 500; color: var(--gray-500); margin-top: 2px;
+    }
+    .intent-btn.quiet {
+      background: var(--gray-50); border-color: var(--gray-200);
+    }
+    .intent-btn.quiet .material-symbols-outlined { color: var(--gray-500); }
+
+    .intent-skip {
+      margin-top: 14px; text-align: center;
+      font-size: 12px; color: var(--gray-500); cursor: pointer;
+      padding: 8px;
+    }
+    .intent-skip:hover { color: var(--gray-700); }
   </style>
 </head>
 <body>
@@ -90,7 +163,14 @@
     <p class="subtitle" id="header-sub">あなたの治療記録</p>
   </div>
 
-  <p class="home-tagline">毎日の体調も、受診の記録も、ここで全部。</p>
+  <p class="home-tagline" id="home-tagline">今日は無理せず、開いてくれただけで十分です。</p>
+
+  <!-- やさしさカード（モーダルで「閉じたい」を選んだ時だけ表示） -->
+  <div class="gentle-card" id="gentle-card" style="display:none;">
+    <span class="material-symbols-outlined">spa</span>
+    今日は調子いい日かもしれませんね。<br>
+    無理して書かなくて大丈夫です。困った時にいつでも、ここで一緒に整理します。
+  </div>
 
   <div class="menu-area" id="menu-area">
     <div class="loading-mask">
@@ -110,9 +190,45 @@
     </a>
   </div>
 
+  <!-- 困りごと質問モーダル -->
+  <div class="intent-overlay" id="intent-overlay" role="dialog" aria-modal="true">
+    <div class="intent-sheet">
+      <p class="intent-greet" id="intent-greet">こんにちは。今日はどうされましたか？</p>
+      <p class="intent-sub">今日の気持ちに近いものを選ぶと、必要な画面だけお出しします。<br>無理に選ばなくても大丈夫です。</p>
+      <div class="intent-list" id="intent-list"></div>
+      <div class="intent-skip" id="intent-skip">今日はそのまま開く</div>
+    </div>
+  </div>
+
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
   <script src="/js/liff-init.js"></script>
   <script>
+    const INTENT_KEY = "yorisoi_intent_lastShownAt";
+    const INTENT_DAYS = 3; // 3日以上空いたら再表示
+
+    function pickGreet() {
+      const h = new Date().getHours();
+      if (h >= 5 && h < 10) return "おはようございます。今朝はどうされましたか？";
+      if (h >= 10 && h < 17) return "こんにちは。今日はどうされましたか？";
+      if (h >= 17 && h < 20) return "お疲れさまです。今日はどうされましたか？";
+      return "こんばんは。今日はどうされましたか？";
+    }
+
+    function shouldShowIntent() {
+      try {
+        const last = localStorage.getItem(INTENT_KEY);
+        if (!last) return true;
+        const days = (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24);
+        return days >= INTENT_DAYS;
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function markIntentShown() {
+      try { localStorage.setItem(INTENT_KEY, new Date().toISOString()); } catch (e) {}
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       // 初回セットアップ未完了ならセットアップへ
       if (!localStorage.getItem("yorisoi_setup_done") && !new URLSearchParams(location.search).get("disease")) {
@@ -130,6 +246,7 @@
           { href: "/simple/record.html" + q,   icon: "edit_note",       label: "きろくする",   desc: "受診や体調をのこす" },
           { href: "/simple/calendar.html" + q, icon: "calendar_month",  label: "ふりかえる",   desc: "これまでの記録を見る" },
           { href: "/simple/show.html" + q,     icon: "co_present",      label: "みせる",       desc: "医師にパッと見せる" },
+          { href: "/talk/",                    icon: "chat",            label: "はなす",       desc: "気持ちを聞いてもらう（β）" },
         ];
         const html = buttons.map(b => `
           <a class="big-button" href="${b.href}">
@@ -145,12 +262,73 @@
         document.getElementById("menu-area").innerHTML = html;
         document.getElementById("settei-link").href = "/simple/settings.html" + q;
         document.getElementById("emergency-link").href = "/emergency-card.html" + q + "&from=simple";
+
+        // 困りごと質問モーダルの初期化
+        initIntentModal(q);
       } catch (err) {
         console.error("Init error:", err);
         document.getElementById("menu-area").innerHTML =
           '<p class="text-sm" style="color:var(--danger); text-align:center;">読み込みに失敗しました</p>';
       }
     });
+
+    function initIntentModal(qStr) {
+      // ?intent=skip があったらスキップ（戻るボタンで戻った時に再表示しない）
+      const sp = new URLSearchParams(location.search);
+      if (sp.get("intent") === "skip") return;
+      if (!shouldShowIntent()) return;
+
+      const overlay = document.getElementById("intent-overlay");
+      const list = document.getElementById("intent-list");
+      document.getElementById("intent-greet").textContent = pickGreet();
+
+      const items = [
+        { icon: "edit_note", label: "今日の体調を残しておきたい",
+          sub: "ひとことだけでも大丈夫です",
+          go: () => { markIntentShown(); location.href = "/simple/record.html" + qStr + "&intent=selflog"; } },
+        { icon: "local_hospital", label: "病院で言われたことをメモしたい",
+          sub: "受診の記録に進みます",
+          go: () => { markIntentShown(); location.href = "/simple/record.html" + qStr + "&intent=visit"; } },
+        { icon: "forum", label: "気持ちを聞いてほしい",
+          sub: "聞き役のAIが受け止めます（保存しません）",
+          go: () => { markIntentShown(); location.href = "/simple/talk.html" + qStr; } },
+        { icon: "calendar_month", label: "これまでの記録を振り返りたい",
+          sub: "カレンダーで見ます",
+          go: () => { markIntentShown(); location.href = "/simple/calendar.html" + qStr; } },
+        { icon: "spa", label: "今日は何もしないで閉じたい", quiet: true,
+          sub: "それも大事な選択です",
+          go: () => { markIntentShown(); closeIntent(true); } },
+      ];
+
+      list.innerHTML = "";
+      items.forEach((it) => {
+        const btn = document.createElement("button");
+        btn.className = "intent-btn" + (it.quiet ? " quiet" : "");
+        btn.innerHTML = `
+          <span class="material-symbols-outlined">${it.icon}</span>
+          <span class="it-label">${it.label}<span class="it-sub">${it.sub}</span></span>
+        `;
+        btn.addEventListener("click", it.go);
+        list.appendChild(btn);
+      });
+
+      document.getElementById("intent-skip").addEventListener("click", () => {
+        markIntentShown();
+        closeIntent(false);
+      });
+
+      // 表示
+      overlay.classList.add("show");
+    }
+
+    function closeIntent(quietMode) {
+      document.getElementById("intent-overlay").classList.remove("show");
+      if (quietMode) {
+        // 「何もしないで閉じたい」を選んだ時：やさしさカードを表示、ホーム文を切替
+        document.getElementById("gentle-card").style.display = "block";
+        document.getElementById("home-tagline").style.display = "none";
+      }
+    }
   </script>
 </body>
 </html>

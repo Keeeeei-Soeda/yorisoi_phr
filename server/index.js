@@ -40,6 +40,34 @@ try {
   console.warn("AI routes not loaded:", err.message);
 }
 
+// --- 公衆トイレ オープンデータ（認証不要・デモ/本番共通） ---
+try {
+  const restroomRoutes = require("./routes/restrooms");
+  app.use(restroomRoutes);
+  console.log("Restroom (Osaka open data) routes loaded");
+} catch (err) {
+  console.warn("Restroom routes not loaded:", err.message);
+}
+
+// --- 食事写真メモ（認証不要・デモ/本番共通） ---
+try {
+  const mealsRoutes = require("./routes/meals");
+  app.use(mealsRoutes);
+  console.log("Meals routes loaded");
+} catch (err) {
+  console.warn("Meals routes not loaded:", err.message);
+}
+
+// --- yorisoi-talk SubApp マウント（話す/気づく/次の一歩） ---
+// 名前空間: /talk/* (静的) + /api/talk/* (API)
+try {
+  const talkApp = require("../../yorisoi-talk/server/talk-app");
+  app.use(talkApp);
+  console.log("yorisoi-talk subapp mounted at /talk and /api/talk");
+} catch (err) {
+  console.warn("yorisoi-talk subapp not loaded:", err.message);
+}
+
 if (DEMO_MODE) {
   // --- デモモード: Firestore不要、サンプルデータで動作 ---
   console.log("*** DEMO MODE — using mock data (no Firestore) ***");

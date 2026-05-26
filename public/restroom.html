@@ -5,56 +5,118 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>トイレさがし - よりそい PHR</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" />
   <style>
     body { padding-bottom: 0; }
     .content { padding: 0; padding-bottom: 0; }
 
     #map {
-      width: 100%; height: calc(100vh - 52px - 72px);
+      width: 100%;
+      height: calc(100vh - 52px - 76px);
+      background: #e8f4ea;
+    }
+
+    /* Leaflet マーカー（カスタムアイコンの土台） */
+    .pin-wrap { font-family: inherit; }
+    .pin-wrap .pin {
+      width: 28px; height: 28px; border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      border: 2px solid #fff;
+    }
+    .pin-wrap .pin .material-symbols-outlined {
+      transform: rotate(45deg);
+      font-size: 16px; color: #fff;
+    }
+    .pin-wrap.barrier .pin { background: #0d9488; }
+    .pin-wrap.normal .pin  { background: #ec4899; }
+
+    /* 現在地マーカー */
+    .me-dot {
+      width: 16px; height: 16px; background: #4285f4;
+      border: 3px solid #fff; border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
     /* コントロールバー */
     .map-controls {
       position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 430px; background: var(--white); padding: 12px 16px;
-      box-shadow: 0 -2px 12px rgba(0,0,0,0.1); z-index: 50;
-      display: flex; align-items: center; gap: 12px;
+      width: 100%; max-width: 430px; background: var(--white); padding: 10px 14px;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.1); z-index: 800;
+      display: flex; flex-direction: column; gap: 6px;
     }
+    .map-controls .row { display: flex; gap: 10px; }
     .ctrl-btn {
-      flex: 1; padding: 12px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
-      border: none; cursor: pointer; text-align: center; transition: all 0.15s;
+      flex: 1; padding: 11px; border-radius: 12px; font-size: 14px; font-weight: 700;
+      border: none; cursor: pointer; text-align: center; letter-spacing: 1px;
     }
-    .ctrl-btn:active { transform: scale(0.96); }
-    .ctrl-btn-primary { background: var(--teal); color: var(--white); }
-    .ctrl-btn-outline { background: var(--white); color: var(--teal-dark); border: 2px solid var(--teal); }
+    .ctrl-btn:active { transform: scale(0.97); }
+    .ctrl-btn-primary { background: var(--brand-500, #0d9488); color: #fff; }
+    .ctrl-btn-outline { background: #fff; color: var(--brand-700, #115e59); border: 2px solid var(--brand-500, #0d9488); }
+    .attrib-line {
+      font-size: 10px; color: var(--gray-500); text-align: center; line-height: 1.4;
+    }
+    .attrib-line a { color: var(--gray-600); text-decoration: underline; }
 
     /* 情報パネル */
     .info-panel {
-      position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 32px); max-width: 398px;
-      background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
-      padding: 14px 16px; z-index: 60;
+      position: fixed; bottom: 86px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 24px); max-width: 406px;
+      background: var(--white); border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+      padding: 14px 16px 12px; z-index: 850;
     }
-    .info-panel-title { font-size: 15px; font-weight: 700; }
-    .info-panel-detail { font-size: 13px; color: var(--gray-500); margin-top: 4px; }
-    .info-panel-dist { font-size: 13px; color: var(--teal-dark); font-weight: 600; margin-top: 4px; }
+    .info-panel.hidden { display: none; }
+    .info-title-row { display: flex; align-items: flex-start; gap: 8px; }
+    .info-panel-title { font-size: 15px; font-weight: 700; flex: 1; line-height: 1.4; }
     .info-panel-close {
-      position: absolute; top: 8px; right: 12px; background: none; border: none;
-      font-size: 18px; color: var(--gray-400); cursor: pointer;
+      background: none; border: none; font-size: 22px; line-height: 1;
+      color: var(--gray-400); cursor: pointer; padding: 0 4px;
     }
+    .info-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: 700; margin: 6px 4px 0 0;
+    }
+    .info-badge.barrier { background: #ccfbf1; color: #115e59; }
+    .info-badge.normal  { background: #fce7f3; color: #9d174d; }
+    .info-panel-detail { font-size: 12.5px; color: var(--gray-700); margin-top: 8px; line-height: 1.5; white-space: pre-wrap; }
+    .info-panel-addr { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+    .info-panel-dist { font-size: 13px; color: var(--brand-700, #115e59); font-weight: 700; margin-top: 6px; }
+    .info-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .info-action-btn {
+      flex: 1; padding: 8px; border-radius: 10px;
+      background: var(--gray-100, #f3f4f6); color: var(--gray-800, #1f2937);
+      font-size: 12.5px; font-weight: 700; text-decoration: none;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      border: 1px solid var(--gray-200, #e5e7eb);
+    }
+    .info-action-btn:active { transform: scale(0.97); }
+    .info-action-btn .material-symbols-outlined { font-size: 16px; }
 
     /* GPS状態 */
     .gps-status {
       position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
       background: rgba(0,0,0,0.7); color: var(--white); padding: 8px 16px;
-      border-radius: 20px; font-size: 13px; z-index: 60;
+      border-radius: 20px; font-size: 13px; z-index: 870;
+    }
+    .gps-status.hidden { display: none; }
+
+    /* 上部バナー */
+    .src-banner {
+      background: #ecfeff; color: #155e75; padding: 6px 12px;
+      font-size: 11.5px; text-align: center; font-weight: 600;
+      border-bottom: 1px solid #cffafe;
     }
 
-    /* モックモード通知 */
-    .mock-banner {
-      background: #fef3c7; color: #92400e; padding: 8px 16px; font-size: 12px;
-      text-align: center; font-weight: 600;
+    /* オストメイトJP誘導（情報パネル内） */
+    .ostomate-link {
+      display: block; margin-top: 10px; padding: 8px 10px;
+      background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px;
+      font-size: 11.5px; color: #92400e; text-decoration: none; line-height: 1.45;
     }
+    .ostomate-link strong { color: #78350f; }
   </style>
 </head>
 <body>
@@ -63,319 +125,225 @@
     <h1>トイレさがし</h1>
   </div>
 
-  <div id="mock-banner" class="mock-banner hidden">
-    デモモード: サンプルデータを表示しています
-  </div>
+  <div class="src-banner" id="src-banner">読み込み中…</div>
 
   <div class="content">
     <div id="map"></div>
   </div>
 
-  <div class="gps-status hidden" id="gps-status">位置情報を取得中...</div>
+  <div class="gps-status hidden" id="gps-status">位置情報を取得中…</div>
 
   <!-- 施設情報パネル -->
   <div class="info-panel hidden" id="info-panel">
-    <button class="info-panel-close" id="info-close">&times;</button>
-    <div class="info-panel-title" id="info-title"></div>
+    <div class="info-title-row">
+      <div class="info-panel-title" id="info-title"></div>
+      <button class="info-panel-close" id="info-close" aria-label="閉じる">&times;</button>
+    </div>
+    <div id="info-badges"></div>
+    <div class="info-panel-addr" id="info-addr"></div>
     <div class="info-panel-detail" id="info-detail"></div>
     <div class="info-panel-dist" id="info-dist"></div>
+    <div class="info-actions">
+      <a class="info-action-btn" id="btn-gmap" href="#" target="_blank" rel="noopener">
+        <span class="material-symbols-outlined">map</span>Google Mapsで開く
+      </a>
+      <a class="info-action-btn" id="btn-route" href="#" target="_blank" rel="noopener">
+        <span class="material-symbols-outlined">directions_walk</span>経路
+      </a>
+    </div>
+    <a class="ostomate-link" id="ostomate-link"
+       href="https://www.ostomate.jp/" target="_blank" rel="noopener">
+      <strong>オストメイト対応の確認は</strong>「<u>オストメイトJP</u>」（日本オストミー協会）で詳細検索できます →
+    </a>
   </div>
 
   <!-- コントロール -->
   <div class="map-controls">
-    <button class="ctrl-btn ctrl-btn-primary" id="btn-search">このエリアで再検索</button>
-    <button class="ctrl-btn ctrl-btn-outline" id="btn-myloc">現在地</button>
+    <div class="row">
+      <button class="ctrl-btn ctrl-btn-primary" id="btn-search">このエリアで再検索</button>
+      <button class="ctrl-btn ctrl-btn-outline" id="btn-myloc">現在地</button>
+    </div>
+    <div class="attrib-line" id="attrib-line">出典：マップナビおおさか（大阪市計画調整局・CC BY 4.0）／地図：&copy; OpenStreetMap contributors</div>
   </div>
 
-  <!-- Google Maps API（本番時にキーを設定） -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
-    // --- 設定 ---
-    const MAPS_API_KEY = ""; // 本番時に設定
-    const SEARCH_RADIUS = 500; // メートル
-    const USE_MOCK = !MAPS_API_KEY;
+    // 既定中心：大阪駅
+    const FALLBACK_CENTER = { lat: 34.7024, lng: 135.4959 };
+    // 大阪市データは全321件と少量なので、初回は全件マップに乗せる。
+    // 「このエリアで再検索」を押した時のみ近傍に絞る。
+    const INITIAL_RADIUS = 0;       // 0 = 無制限（全件）
+    const INITIAL_LIMIT = 500;      // 全件OK
+    const NEARBY_RADIUS = 1500;     // 「このエリアで再検索」時の半径
+    const NEARBY_LIMIT = 80;
 
-    let map, userMarker, placesService;
+    let map;
+    let userMarker;
     let currentPos = null;
-    let markers = [];
+    let markersLayer;
 
-    // --- モック: サンプルトイレ位置（大阪駅周辺） ---
-    const MOCK_CENTER = { lat: 34.7024, lng: 135.4959 };
-    const MOCK_RESTROOMS = [
-      { name: "JR大阪駅 改札内トイレ", lat: 34.7025, lng: 135.4956, type: "駅構内" },
-      { name: "グランフロント大阪 1F", lat: 34.7055, lng: 135.4948, type: "商業施設" },
-      { name: "ルクア大阪 B1F", lat: 34.7035, lng: 135.4943, type: "商業施設" },
-      { name: "ヨドバシカメラ梅田 3F", lat: 34.7030, lng: 135.4975, type: "商業施設" },
-      { name: "大阪マルビル 1F", lat: 34.6995, lng: 135.4955, type: "ビル" },
-      { name: "阪急三番街 B2F", lat: 34.7048, lng: 135.4990, type: "商業施設" },
-      { name: "ディアモール大阪 公衆トイレ", lat: 34.7008, lng: 135.4965, type: "地下街" },
-      { name: "大丸梅田店 4F", lat: 34.7020, lng: 135.4935, type: "百貨店" },
-      { name: "うめきた公園 公衆トイレ", lat: 34.7065, lng: 135.4930, type: "公園" },
-      { name: "阪急梅田駅 2F トイレ", lat: 34.7050, lng: 135.4968, type: "駅構内" },
-    ];
+    function makeIcon(barrierFree) {
+      const cls = barrierFree ? "barrier" : "normal";
+      return L.divIcon({
+        className: "",
+        html: `<div class="pin-wrap ${cls}"><div class="pin"><span class="material-symbols-outlined">wc</span></div></div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+      });
+    }
 
-    // --- 初期化 ---
-    document.addEventListener("DOMContentLoaded", () => {
-      if (USE_MOCK) {
-        document.getElementById("mock-banner").classList.remove("hidden");
-        initMockMap();
-      } else {
-        // Google Maps APIを動的に読み込み
-        const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&libraries=places&callback=initRealMap`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
+    function meIcon() {
+      return L.divIcon({
+        className: "",
+        html: '<div class="me-dot"></div>',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      // メタ情報を読みに行ってバナー更新
+      try {
+        const meta = await fetch("/api/public/restrooms/meta").then((r) => r.json());
+        document.getElementById("src-banner").textContent =
+          `${meta.attribution}：大阪市内 ${meta.count}件のトイレ情報を表示`;
+      } catch (e) {
+        document.getElementById("src-banner").textContent =
+          "大阪市公衆トイレデータを表示";
       }
-    });
 
-    // ========================================
-    // モックマップ（API キーなしでも動作）
-    // ========================================
-    function initMockMap() {
-      const mapEl = document.getElementById("map");
-      mapEl.style.background = "#e8f4ea";
-      mapEl.style.position = "relative";
-      mapEl.style.overflow = "hidden";
+      initMap(FALLBACK_CENTER);
+      // 初回は全件マップに乗せる（大阪市内321件すべて）
+      await loadRestrooms(FALLBACK_CENTER, { radius: INITIAL_RADIUS, limit: INITIAL_LIMIT });
 
-      // シンプルなグリッド地図を描画
-      let html = `
-        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;">
-          <div style="position:relative; width:100%; height:100%;">
-            <!-- グリッド背景 -->
-            <svg width="100%" height="100%" style="position:absolute; inset:0;">
-              ${generateGridLines()}
-            </svg>
-            <!-- トイレマーカー -->
-            <div id="mock-markers" style="position:absolute; inset:0;"></div>
-          </div>
-        </div>`;
-      mapEl.innerHTML = html;
-
-      renderMockMarkers();
+      // 現在地の取得を試みる（失敗してもOK）
+      tryGetCurrentPosition();
 
       // ボタン
-      document.getElementById("btn-search").addEventListener("click", () => {
-        showGpsStatus("サンプルデータを表示しています");
+      document.getElementById("btn-search").addEventListener("click", async () => {
+        const c = map.getCenter();
+        // 「このエリアで」は中心から半径NEARBY_RADIUSに絞る
+        await loadRestrooms({ lat: c.lat, lng: c.lng }, { radius: NEARBY_RADIUS, limit: NEARBY_LIMIT });
       });
       document.getElementById("btn-myloc").addEventListener("click", () => {
-        showGpsStatus("デモモード: 大阪駅周辺を表示中");
+        if (currentPos) {
+          map.setView([currentPos.lat, currentPos.lng], 16);
+          loadRestrooms(currentPos, { radius: NEARBY_RADIUS, limit: NEARBY_LIMIT });
+        } else {
+          tryGetCurrentPosition(true);
+        }
+      });
+      document.getElementById("info-close").addEventListener("click", () => {
+        document.getElementById("info-panel").classList.add("hidden");
+      });
+    });
+
+    function initMap(center) {
+      map = L.map("map", {
+        zoomControl: true,
+        attributionControl: false, // 下部に独自表示
+      }).setView([center.lat, center.lng], 15);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+
+      // 地図クリックで情報パネルを閉じる
+      map.on("click", () => {
+        document.getElementById("info-panel").classList.add("hidden");
       });
     }
 
-    function generateGridLines() {
-      let svg = "";
-      for (let i = 0; i <= 20; i++) {
-        const pct = i * 5;
-        svg += `<line x1="${pct}%" y1="0" x2="${pct}%" y2="100%" stroke="#c8e6c9" stroke-width="1"/>`;
-        svg += `<line x1="0" y1="${pct}%" x2="100%" y2="${pct}%" stroke="#c8e6c9" stroke-width="1"/>`;
+    async function loadRestrooms(center, opts = {}) {
+      const radius = opts.radius != null ? opts.radius : NEARBY_RADIUS;
+      const limit = opts.limit != null ? opts.limit : NEARBY_LIMIT;
+      try {
+        const url = `/api/public/restrooms?lat=${center.lat}&lng=${center.lng}&radius=${radius}&limit=${limit}`;
+        const data = await fetch(url).then((r) => r.json());
+        renderMarkers(data.items, center);
+        if (data.items.length > 0) {
+          showGpsStatus(`${data.items.length}件のトイレを表示中`);
+        } else {
+          showGpsStatus(`このエリアにはトイレ情報がありません`);
+        }
+      } catch (err) {
+        showGpsStatus("データ取得失敗：" + err.message);
       }
-      // 道路っぽい線
-      svg += `<line x1="0" y1="40%" x2="100%" y2="40%" stroke="#fff" stroke-width="6"/>`;
-      svg += `<line x1="50%" y1="0" x2="50%" y2="100%" stroke="#fff" stroke-width="6"/>`;
-      svg += `<line x1="20%" y1="0" x2="80%" y2="100%" stroke="#fff" stroke-width="3"/>`;
-      return svg;
     }
 
-    function renderMockMarkers() {
-      const container = document.getElementById("mock-markers");
-      let html = '';
-
-      // 現在地マーカー
-      html += `
-        <div style="position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); z-index:10;">
-          <div style="width:16px; height:16px; background:#4285f4; border:3px solid #fff; border-radius:50%; box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>
-          <div style="width:40px; height:40px; background:rgba(66,133,244,0.15); border-radius:50%; position:absolute; top:-12px; left:-12px; animation: pulse 2s infinite;"></div>
-        </div>`;
-
-      // トイレマーカー
-      MOCK_RESTROOMS.forEach((r, i) => {
-        const left = 15 + (i % 5) * 17;
-        const top = 15 + Math.floor(i / 5) * 35 + (i % 3) * 8;
-        html += `
-          <div class="mock-pin" style="position:absolute; left:${left}%; top:${top}%; transform:translate(-50%,-100%); cursor:pointer; z-index:5;"
-               onclick="showMockInfo(${i})">
-            <div style="background:var(--teal); color:#fff; width:32px; height:32px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.2);">
-              <span style="transform:rotate(45deg); font-size:14px;">&#128702;</span>
-            </div>
-          </div>`;
+    function renderMarkers(items, center) {
+      markersLayer.clearLayers();
+      items.forEach((it) => {
+        const marker = L.marker([it.lat, it.lng], { icon: makeIcon(it.barrierFree) });
+        marker.on("click", () => showInfo(it, center));
+        markersLayer.addLayer(marker);
       });
-
-      container.innerHTML = html;
-
-      // パルスアニメーション追加
-      const style = document.createElement("style");
-      style.textContent = "@keyframes pulse { 0%,100% { transform: scale(1); opacity:0.6; } 50% { transform: scale(1.5); opacity:0.2; } }";
-      document.head.appendChild(style);
     }
 
-    function showMockInfo(idx) {
-      const r = MOCK_RESTROOMS[idx];
-      const dist = Math.floor(Math.random() * 400 + 50);
-      document.getElementById("info-title").textContent = r.name;
-      document.getElementById("info-detail").textContent = r.type;
-      document.getElementById("info-dist").textContent = `約 ${dist}m`;
+    function showInfo(it, center) {
+      document.getElementById("info-title").textContent = it.name || "（名称未登録）";
+      const badges = [];
+      if (it.barrierFree) badges.push('<span class="info-badge barrier">車いす対応／多目的</span>');
+      else badges.push('<span class="info-badge normal">公衆便所</span>');
+      document.getElementById("info-badges").innerHTML = badges.join("");
+      document.getElementById("info-addr").textContent = it.address || "";
+      document.getElementById("info-detail").textContent = it.detail || "";
+      const dist = it.distance != null ? `${formatDistance(it.distance)}` : "";
+      document.getElementById("info-dist").textContent = dist;
+
+      // Google Maps 起動URL
+      const q = encodeURIComponent(`${it.name} ${it.address || ""}`);
+      document.getElementById("btn-gmap").href =
+        `https://www.google.com/maps/search/?api=1&query=${q}&query_place_id=`;
+      // 経路（現在地→施設）
+      const dest = `${it.lat},${it.lng}`;
+      const origin = currentPos ? `${currentPos.lat},${currentPos.lng}` : "";
+      document.getElementById("btn-route").href =
+        `https://www.google.com/maps/dir/?api=1&destination=${dest}` +
+        (origin ? `&origin=${origin}` : "") + `&travelmode=walking`;
+
       document.getElementById("info-panel").classList.remove("hidden");
     }
 
-    // ========================================
-    // 本番マップ（Google Maps API）
-    // ========================================
-    function initRealMap() {
-      const gpsStatus = document.getElementById("gps-status");
-      gpsStatus.classList.remove("hidden");
+    function formatDistance(m) {
+      if (m < 1000) return `現在地から約 ${m}m`;
+      return `現在地から約 ${(m / 1000).toFixed(1)}km`;
+    }
 
+    function tryGetCurrentPosition(force = false) {
+      if (!navigator.geolocation) return;
+      const status = document.getElementById("gps-status");
+      status.textContent = "位置情報を取得中…";
+      status.classList.remove("hidden");
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           currentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          gpsStatus.classList.add("hidden");
-          createMap(currentPos);
-          searchNearby(currentPos);
-          watchPosition();
+          status.classList.add("hidden");
+          if (userMarker) userMarker.remove();
+          userMarker = L.marker([currentPos.lat, currentPos.lng], { icon: meIcon() }).addTo(map);
+          if (force) {
+            map.setView([currentPos.lat, currentPos.lng], 16);
+            loadRestrooms(currentPos);
+          }
         },
         (err) => {
-          gpsStatus.textContent = "GPS取得失敗: " + err.message;
-          // フォールバック: 大阪駅
-          currentPos = MOCK_CENTER;
-          createMap(currentPos);
-          searchNearby(currentPos);
+          status.textContent = "位置情報なし（大阪駅周辺を表示中）";
+          setTimeout(() => status.classList.add("hidden"), 2500);
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
     }
 
-    function createMap(center) {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center,
-        zoom: 16,
-        mapTypeId: "roadmap",
-        disableDefaultUI: true,
-        zoomControl: true,
-        styles: [
-          { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
-        ],
-      });
-
-      userMarker = new google.maps.Marker({
-        position: center,
-        map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: "#4285f4",
-          fillOpacity: 1,
-          strokeColor: "#fff",
-          strokeWeight: 3,
-        },
-        title: "現在地",
-      });
-
-      placesService = new google.maps.places.PlacesService(map);
-
-      // ボタンイベント
-      document.getElementById("btn-search").addEventListener("click", () => {
-        const center = map.getCenter();
-        searchNearby({ lat: center.lat(), lng: center.lng() });
-      });
-
-      document.getElementById("btn-myloc").addEventListener("click", () => {
-        if (currentPos) {
-          map.panTo(currentPos);
-          searchNearby(currentPos);
-        }
-      });
-    }
-
-    function searchNearby(location) {
-      clearMarkers();
-      placesService.nearbySearch(
-        { location, radius: SEARCH_RADIUS, keyword: "トイレ" },
-        (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK) {
-            results.forEach((place) => addPlaceMarker(place));
-          }
-        }
-      );
-      // 「公衆トイレ」でも検索
-      placesService.nearbySearch(
-        { location, radius: SEARCH_RADIUS, keyword: "公衆トイレ" },
-        (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK) {
-            results.forEach((place) => addPlaceMarker(place));
-          }
-        }
-      );
-    }
-
-    function addPlaceMarker(place) {
-      // 重複チェック
-      if (markers.some((m) => m.placeId === place.place_id)) return;
-
-      const marker = new google.maps.Marker({
-        position: place.geometry.location,
-        map,
-        icon: {
-          url: "data:image/svg+xml," + encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
-            '<circle cx="16" cy="16" r="14" fill="#86c8bc" stroke="#fff" stroke-width="2"/>' +
-            '<text x="16" y="21" text-anchor="middle" font-size="14">&#128702;</text></svg>'
-          ),
-          scaledSize: new google.maps.Size(32, 32),
-        },
-        title: place.name,
-      });
-      marker.placeId = place.place_id;
-
-      marker.addListener("click", () => {
-        const dist = calcDistance(currentPos, {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
-        });
-        document.getElementById("info-title").textContent = place.name;
-        document.getElementById("info-detail").textContent = place.vicinity || "";
-        document.getElementById("info-dist").textContent = `約 ${dist}m`;
-        document.getElementById("info-panel").classList.remove("hidden");
-      });
-
-      markers.push(marker);
-    }
-
-    function clearMarkers() {
-      markers.forEach((m) => m.setMap(null));
-      markers = [];
-    }
-
-    function watchPosition() {
-      navigator.geolocation.watchPosition(
-        (pos) => {
-          currentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          if (userMarker) userMarker.setPosition(currentPos);
-        },
-        () => {},
-        { enableHighAccuracy: true }
-      );
-    }
-
-    function calcDistance(a, b) {
-      const R = 6371000;
-      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-      const s = Math.sin(dLat / 2) ** 2 +
-        Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-      return Math.round(2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s)));
-    }
-
-    // --- GPS状態表示 ---
-    function showGpsStatus(msg) {
+    function showGpsStatus(msg, ms = 2500) {
       const el = document.getElementById("gps-status");
       el.textContent = msg;
       el.classList.remove("hidden");
-      setTimeout(() => el.classList.add("hidden"), 3000);
+      if (ms) setTimeout(() => el.classList.add("hidden"), ms);
     }
-
-    // --- 情報パネル閉じる ---
-    document.getElementById("info-close").addEventListener("click", () => {
-      document.getElementById("info-panel").classList.add("hidden");
-    });
   </script>
 </body>
 </html>

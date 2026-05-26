@@ -40,6 +40,12 @@ router.get("/api/master/medications", (req, res) => {
 
 const DEMO_DATA = {
   uc: {
+    // 仮想ストーリー（大阪IBD会員想定）：
+    // 大阪市内勤務・35歳前後の女性。2020年に都島区の総合医療センターでUCと確定診断（全大腸炎型）。
+    // 翌年に再燃でステロイドパルス、その後寛解。2023年からリアルダ単独で寛解維持。
+    // 2023年から大阪IBDの交流会に参加し、同世代の仲間ができた。
+    // 2025年12月に通勤の都合で難波の専門クリニックに転院し、現在は月1回フォロー。
+    // 末梢関節炎・口内炎などの腸管外症状もあり多科併診中。
     profile: {
       displayName: "デモユーザー",
       diagnosisName: "潰瘍性大腸炎",
@@ -47,42 +53,49 @@ const DEMO_DATA = {
       diseaseId: "uc",
     },
     timeline: [
-      { id: "ev1", date: "2020-06-15", category: "diagnosis", title: "潰瘍性大腸炎と診断", detail: "○○大学病院 消化器内科にて確定診断。全大腸炎型。", source: "manual" },
-      { id: "ev2", date: "2020-06-20", category: "medication_change", title: "ペンタサ処方開始", detail: "メサラジン 1日3回 経口", source: "manual" },
-      { id: "ev3", date: "2020-09-10", category: "exam", title: "大腸内視鏡検査", detail: "軽度の炎症所見あり。生検実施。", source: "manual" },
-      { id: "ev4", date: "2021-03-05", category: "hospitalization", title: "再燃により入院（10日間）", detail: "○○大学病院。ステロイドパルス療法実施。", source: "manual" },
-      { id: "ev5", date: "2021-03-15", category: "medication_change", title: "プレドニン追加", detail: "プレドニゾロン30mg/日から漸減", source: "manual" },
-      { id: "ev6", date: "2021-08-01", category: "treatment_change", title: "ステロイド離脱成功", detail: "プレドニゾロン完全中止。ペンタサ単独に。", source: "manual" },
-      { id: "ev7", date: "2022-04-20", category: "exam", title: "大腸内視鏡検査", detail: "粘膜治癒確認。寛解維持。", source: "manual" },
-      { id: "ev8", date: "2023-11-10", category: "medication_change", title: "リアルダに変更", detail: "ペンタサ→リアルダ（1日1回に簡素化）", source: "manual" },
-      { id: "ev9", date: "2024-05-15", category: "exam", title: "定期内視鏡", detail: "異常なし。寛解維持継続。", source: "manual" },
-      { id: "ev10", date: "2025-12-01", category: "other", title: "引っ越しに伴い転院", detail: "○○大学病院 → △△クリニック IBD外来", source: "manual" },
+      { id: "ev1", date: "2020-06-15", category: "diagnosis", title: "潰瘍性大腸炎と診断", detail: "大阪市立総合医療センター 消化器内科にて確定診断。全大腸炎型。仕事中の血便がきっかけで受診。", source: "manual" },
+      { id: "ev2", date: "2020-06-20", category: "medication_change", title: "ペンタサ処方開始", detail: "メサラジン 1日3回 経口（朝・昼・夕）", source: "manual" },
+      { id: "ev3", date: "2020-09-10", category: "exam", title: "大腸内視鏡検査", detail: "下行結腸〜直腸に軽度炎症所見。生検でUC典型像確認。", source: "manual" },
+      { id: "ev4", date: "2021-03-05", category: "hospitalization", title: "再燃により入院（10日間）", detail: "大阪市立総合医療センターに入院。ステロイドパルス療法（ソル・メドロール 1g×3日）。", source: "manual" },
+      { id: "ev5", date: "2021-03-15", category: "medication_change", title: "プレドニン追加", detail: "プレドニゾロン30mg/日からスタート。月単位で漸減。", source: "manual" },
+      { id: "ev6", date: "2021-08-01", category: "treatment_change", title: "ステロイド離脱成功", detail: "プレドニゾロン完全中止。ペンタサ単独維持に。", source: "manual" },
+      { id: "ev7", date: "2022-04-20", category: "exam", title: "大腸内視鏡検査", detail: "粘膜治癒（Mayo内視鏡スコア0）確認。寛解維持。", source: "manual" },
+      { id: "ev8", date: "2023-09-23", category: "other", title: "大阪IBDの交流会に初参加", detail: "発症から3年、ようやく同世代の患者さんと話せた。栄養剤や仕事の工夫を共有してもらえた。気持ちが軽くなった。", source: "manual" },
+      { id: "ev9", date: "2023-11-10", category: "medication_change", title: "リアルダに変更", detail: "ペンタサ（1日3回）→リアルダ（1日1回）に切替。服薬負担が一気に減った。", source: "manual" },
+      { id: "ev10", date: "2024-05-15", category: "exam", title: "定期内視鏡", detail: "粘膜治癒継続。寛解維持。便中カルプロテクチン 35μg/g。", source: "manual" },
+      { id: "ev11", date: "2025-12-01", category: "other", title: "通勤の都合で転院", detail: "大阪市立総合医療センター → IBD専門クリニックなにわ。紹介状＋これまでの治療歴を持参。", source: "manual" },
+      { id: "ev12", date: "2026-02-14", category: "self-log", title: "世界IBDデーの会報を読んだ", detail: "大阪IBDの会報「日本一分厚いIBD患者会会報」最新号。新しい治療薬の解説が分かりやすかった。", source: "manual" },
+      { id: "ev13", date: "2026-03-22", category: "self-log", title: "繁忙期で疲れがたまった", detail: "残業続きで便回数が3〜4回/日に増えた。土日にしっかり休んだら戻った。睡眠大事。", source: "manual" },
+      { id: "ev14", date: "2026-04-18", category: "self-log", title: "久しぶりに焼肉に行けた", detail: "脂多めを少しだけ。腹痛なし、便通も安定。寛解期の幸せ。", source: "manual" },
+      { id: "ev15", date: "2026-05-09", category: "self-log", title: "大阪IBDの総会に出席", detail: "5/19の世界IBDデーに向けたPOOPキャラバンの打ち合わせを聞いた。会員さんとの再会も嬉しい。", source: "manual" },
     ],
     medications: [
-      { id: "m1", name: "リアルダ", genericName: "メサラジン", category: "5-ASA", dosageForm: "経口", startDate: "2023-11-10", endDate: null, isActive: true, changeReason: "1日1回に簡素化のため変更", sideNotes: "食後に服用" },
-      { id: "m2", name: "ビオフェルミン", genericName: "", category: "other", dosageForm: "経口", startDate: "2020-06-20", endDate: null, isActive: true, changeReason: "腸内環境の改善", sideNotes: "" },
+      { id: "m1", name: "リアルダ", genericName: "メサラジン", category: "5-ASA", dosageForm: "経口", startDate: "2023-11-10", endDate: null, isActive: true, changeReason: "ペンタサからの簡素化（1日1回に）", sideNotes: "朝食後に4錠まとめて服用" },
+      { id: "m2", name: "ビオスリー", genericName: "酪酸菌・糖化菌・乳酸菌", category: "other", dosageForm: "経口", startDate: "2020-06-20", endDate: null, isActive: true, changeReason: "腸内環境の改善", sideNotes: "毎食後" },
       { id: "m3", name: "ペンタサ", genericName: "メサラジン", category: "5-ASA", dosageForm: "経口", startDate: "2020-06-20", endDate: "2023-11-10", isActive: false, changeReason: "初回処方", sideNotes: "1日3回 食後" },
-      { id: "m4", name: "プレドニン", genericName: "プレドニゾロン", category: "steroid", dosageForm: "経口", startDate: "2021-03-05", endDate: "2021-08-01", isActive: false, changeReason: "再燃時のステロイドパルス", sideNotes: "30mg→漸減→中止" },
+      { id: "m4", name: "プレドニン", genericName: "プレドニゾロン", category: "steroid", dosageForm: "経口", startDate: "2021-03-05", endDate: "2021-08-01", isActive: false, changeReason: "再燃時のステロイドパルス後の漸減", sideNotes: "30mg→20mg→10mg→5mg→中止" },
     ],
     labResults: [
-      { id: "l1", date: "2026-03-15", values: { crp: 0.12, hb: 14.2, wbc: 5800, alb: 4.1, plt: 22 } },
-      { id: "l2", date: "2025-12-10", values: { crp: 0.08, hb: 13.8, wbc: 6200, alb: 4.3, plt: 24 } },
-      { id: "l3", date: "2025-09-05", values: { crp: 0.15, hb: 14.0, wbc: 5500, alb: 4.0, plt: 21 } },
-      { id: "l4", date: "2025-06-01", values: { crp: 0.45, hb: 12.9, wbc: 7100, alb: 3.8, plt: 28 } },
-      { id: "l5", date: "2025-03-01", values: { crp: 0.22, hb: 13.5, wbc: 6000, alb: 4.2, plt: 23 } },
+      { id: "l1", date: "2026-04-20", values: { crp: 0.10, hb: 14.1, wbc: 5800, alb: 4.2, esr: 8, plt: 22, fcal: 32 } },
+      { id: "l2", date: "2026-01-15", values: { crp: 0.12, hb: 14.0, wbc: 5900, alb: 4.1, esr: 9, plt: 23, fcal: 38 } },
+      { id: "l3", date: "2025-12-01", values: { crp: 0.15, hb: 13.8, wbc: 6200, alb: 4.0, esr: 11, plt: 24, fcal: 42 } },
+      { id: "l4", date: "2025-09-05", values: { crp: 0.18, hb: 13.6, wbc: 6500, alb: 4.0, esr: 13, plt: 25, fcal: 58 } },
+      { id: "l5", date: "2025-06-01", values: { crp: 0.45, hb: 12.9, wbc: 7100, alb: 3.8, esr: 22, plt: 28, fcal: 145, lrg: 14 } },
+      { id: "l6", date: "2025-03-01", values: { crp: 0.22, hb: 13.5, wbc: 6000, alb: 4.0, esr: 14, plt: 23, fcal: 65 } },
     ],
     clinics: [
-      { id: "c1", name: "△△クリニック IBD外来", address: "東京都世田谷区", phone: "03-1234-5678", departments: ["消化器内科"], isPrimary: true, note: "メインのかかりつけ。月1回フォロー。" },
-      { id: "c2", name: "○○大学病院 消化器内科", address: "東京都文京区", phone: "03-3815-5411", departments: ["消化器内科", "大腸肛門外科"], isPrimary: false, note: "確定診断・大腸内視鏡検査の拠点。" },
-      { id: "c3", name: "やまもとリウマチ内科", address: "東京都渋谷区", phone: "", departments: ["リウマチ科"], isPrimary: false, note: "末梢関節炎の合併確認・フォロー。" },
-      { id: "c4", name: "近藤皮膚科クリニック", address: "東京都世田谷区", phone: "", departments: ["皮膚科"], isPrimary: false, note: "口内炎・皮疹の相談。" },
+      { id: "c1", name: "IBD専門クリニックなにわ", address: "大阪市中央区難波", phone: "06-1234-5678", departments: ["消化器内科"], isPrimary: true, note: "通勤途中の難波で月1回フォロー。寛解期は3ヶ月毎。" },
+      { id: "c2", name: "大阪市立総合医療センター 消化器内科", address: "大阪市都島区都島本通", phone: "06-6929-1221", departments: ["消化器内科", "大腸肛門外科"], isPrimary: false, note: "確定診断・入院・大腸内視鏡の拠点。年1回の精査で受診。" },
+      { id: "c3", name: "なかのしまリウマチ内科クリニック", address: "大阪市北区中之島", phone: "", departments: ["リウマチ科"], isPrimary: false, note: "末梢関節炎の合併確認・フォロー。半年に1回。" },
+      { id: "c4", name: "うめだ皮ふ科クリニック", address: "大阪市北区梅田", phone: "", departments: ["皮膚科"], isPrimary: false, note: "口内炎・皮疹の相談（UCの腸管外症状）。" },
     ],
     visits: [
-      { id: "v1", date: "2025-12-01", clinicId: "c1", department: "消化器内科", doctor: "佐藤 太郎", chiefComplaint: "転院後の初回受診", findings: "リアルダ継続で寛解維持。便通安定、出血なし。", nextAction: "次回3ヶ月後。CRP・血液検査を継続。", photos: [], relatedMedicationIds: ["m1"], relatedLabResultIds: ["l2"], relatedTimelineEventId: "ev10" },
-      { id: "v2", date: "2026-03-15", clinicId: "c1", department: "消化器内科", doctor: "佐藤 太郎", chiefComplaint: "定期診察", findings: "CRP 0.12 と寛解維持。腹痛なし、排便良好。", nextAction: "リアルダ継続。次回6ヶ月後に内視鏡予定。", photos: [], relatedMedicationIds: ["m1"], relatedLabResultIds: ["l1"], relatedTimelineEventId: null },
-      { id: "v3", date: "2024-05-15", clinicId: "c2", department: "消化器内科", doctor: "山田 花子", chiefComplaint: "定期内視鏡", findings: "粘膜治癒確認。寛解維持継続。", nextAction: "1年後に再検査。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: "ev9" },
-      { id: "v4", date: "2025-08-10", clinicId: "c3", department: "リウマチ科", doctor: "山本 健", chiefComplaint: "膝関節の痛み", findings: "末梢関節炎の合併。左膝に軽度滑膜炎。リウマトイド因子陰性。", nextAction: "NSAIDs頓用。次回2ヶ月後にフォロー。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
-      { id: "v5", date: "2025-11-20", clinicId: "c4", department: "皮膚科", doctor: "近藤 一郎", chiefComplaint: "口内炎が繰り返す", findings: "アフタ性口内炎。UC関連の腸管外症状の可能性。", nextAction: "口腔ケア・トリアムシノロン軟膏。再燃時は消化器内科へ報告。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
+      { id: "v1", date: "2026-04-20", clinicId: "c1", department: "消化器内科", doctor: "難波 徹", chiefComplaint: "便通安定、血便なし。仕事のストレスで便回数が一時増えた話を相談。", findings: "CRP 0.10、Alb 4.2、便中カルプロテクチン 32 と良好。寛解維持。pMayo 0点。", nextAction: "リアルダ継続（1日1回 4錠 朝食後）。次回3ヶ月後。再燃時は早めに連絡。", photos: [], relatedMedicationIds: ["m1"], relatedLabResultIds: ["l1"], relatedTimelineEventId: null },
+      { id: "v2", date: "2026-01-15", clinicId: "c1", department: "消化器内科", doctor: "難波 徹", chiefComplaint: "年末年始の食生活が乱れた後の体調確認", findings: "便回数 1〜2回/日、血便なし。CRP 0.12 と寛解維持。", nextAction: "リアルダ継続。次回3ヶ月後。", photos: [], relatedMedicationIds: ["m1"], relatedLabResultIds: ["l2"], relatedTimelineEventId: null },
+      { id: "v3", date: "2025-12-01", clinicId: "c1", department: "消化器内科", doctor: "難波 徹", chiefComplaint: "転院後の初回受診。これまでの治療歴と現在の薬を共有。", findings: "紹介状確認。リアルダ単独で寛解維持中。CRP 0.15。", nextAction: "現薬継続。月1回フォロー開始。次回1月。", photos: [], relatedMedicationIds: ["m1"], relatedLabResultIds: ["l3"], relatedTimelineEventId: "ev11" },
+      { id: "v4", date: "2025-10-15", clinicId: "c2", department: "消化器内科", doctor: "都島 麻衣", chiefComplaint: "転院前の最終フォロー。今後は近所でフォロー希望と相談。", findings: "粘膜治癒継続。便中カルプロテクチン 58 と良好。紹介状を作成。", nextAction: "なにわクリニックへ紹介。年1回の精査時のみ当院も受診で。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
+      { id: "v5", date: "2025-08-10", clinicId: "c3", department: "リウマチ科", doctor: "中之島 健", chiefComplaint: "左膝の痛みが2週間続く。階段の上り下りでつらい。", findings: "末梢関節炎の合併。左膝に軽度滑膜炎。リウマトイド因子・抗CCP抗体ともに陰性。UC関連の関節症と判断。", nextAction: "ロキソニン頓用。膝のサポーター指導。次回2ヶ月後にフォロー。消化器内科にも共有。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
+      { id: "v6", date: "2025-11-20", clinicId: "c4", department: "皮膚科", doctor: "梅田 桜子", chiefComplaint: "口内炎が月1〜2回繰り返す。今回は3つ同時に出た。", findings: "アフタ性口内炎（UC関連の腸管外症状の可能性）。皮膚は問題なし。", nextAction: "ケナログ軟膏処方。再燃のサインかもしれないので消化器内科へ報告を勧奨。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
     ],
   },
 
@@ -206,39 +219,57 @@ const DEMO_DATA = {
   },
 
   crohn: {
+    // 仮想ストーリー（大阪IBD会員想定）：
+    // 吹田市在住・28歳男性。大学2年生（19歳）の春にクローン病（小腸大腸型）と診断され9年。
+    // 大阪医科薬科大学IBDセンター（高槻市）で確定診断、ペンタサ＋成分栄養剤エレンタールから開始。
+    // 翌年再燃でヒュミラ導入、5年後に効果減弱でステラーラに変更（現在2剤目）。
+    // 軽度の痔瘻と肛門皮垂があり大腸肛門外科でもフォロー。
+    // 診断翌年（2018年）に大阪IBDの交流会に参加して人生観が変わった。今も会員継続中。
+    // 仕事は大阪市内のIT企業勤務、エレンタールを職場に常備して就寝前服用。
     profile: { displayName: "デモユーザー", diagnosisName: "クローン病", diagnosisDate: "2017-05-12", diseaseId: "crohn" },
     timeline: [
-      { id: "ev1", date: "2017-05-12", category: "diagnosis", title: "クローン病と診断", detail: "小腸大腸型。○○大学病院。", source: "manual" },
-      { id: "ev2", date: "2017-05-20", category: "medication_change", title: "ペンタサ + エレンタール開始", detail: "栄養療法と5-ASA併用。", source: "manual" },
-      { id: "ev3", date: "2018-11-05", category: "flare", title: "再燃", detail: "腹痛・下痢増悪。CRP 4.2。", source: "manual" },
-      { id: "ev4", date: "2018-11-10", category: "medication_change", title: "ヒュミラ導入", detail: "生物学的製剤開始。", source: "manual" },
-      { id: "ev5", date: "2020-06-15", category: "exam", title: "大腸内視鏡", detail: "粘膜治癒確認。", source: "manual" },
-      { id: "ev6", date: "2023-03-01", category: "medication_change", title: "ステラーラに変更", detail: "ヒュミラ効果減弱のため変更。", source: "manual" },
-      { id: "ev7", date: "2025-10-01", category: "exam", title: "定期MRE検査", detail: "活動性炎症なし。寛解維持。", source: "manual" },
+      { id: "ev1", date: "2017-05-12", category: "diagnosis", title: "クローン病と診断", detail: "大阪医科薬科大学病院 IBDセンター（高槻市）。小腸大腸型。大学2年の春、体重5kg減と腹痛・下痢で受診。", source: "manual" },
+      { id: "ev2", date: "2017-05-20", category: "medication_change", title: "ペンタサ + エレンタール開始", detail: "メサラジン1日4g + 成分栄養剤エレンタール 就寝前1包から開始。", source: "manual" },
+      { id: "ev3", date: "2018-04-15", category: "other", title: "大阪IBD交流会に初参加", detail: "診断から1年、思い切って参加。同じ20代のクローン病患者さんと話せて気持ちが軽くなった。エレンタールの飲み方の工夫を教えてもらう。以降、会員として継続。", source: "manual" },
+      { id: "ev4", date: "2018-11-05", category: "flare", title: "再燃", detail: "大学のテスト期間中に腹痛・下痢が増悪。CRP 4.2、Alb 3.2。", source: "manual" },
+      { id: "ev5", date: "2018-11-10", category: "medication_change", title: "ヒュミラ導入", detail: "生物学的製剤（アダリムマブ）開始。導入時は週1回、その後2週ごと自己注射。", source: "manual" },
+      { id: "ev6", date: "2019-08-20", category: "surgery", title: "肛門周囲膿瘍切開排膿", detail: "肛門周囲の腫れと痛みで救急受診。シートン法でドレナージ。CDの肛門病変として治療。", source: "manual" },
+      { id: "ev7", date: "2020-06-15", category: "exam", title: "大腸内視鏡", detail: "粘膜治癒確認（SES-CD改善）。寛解維持。就職活動も無事終えられた。", source: "manual" },
+      { id: "ev8", date: "2022-10-10", category: "flare", title: "二次無効の兆候", detail: "ヒュミラの効果が薄れる感じ。便回数増、CRP 1.8。抗薬物抗体も陽性化。", source: "manual" },
+      { id: "ev9", date: "2023-03-01", category: "medication_change", title: "ステラーラに変更", detail: "ヒュミラ→ステラーラ（ウステキヌマブ）に切替。8週ごと自己注射。", source: "manual" },
+      { id: "ev10", date: "2024-11-08", category: "exam", title: "MRE検査", detail: "小腸の活動性炎症なし。狭窄もなし。寛解維持確認。", source: "manual" },
+      { id: "ev11", date: "2025-10-01", category: "exam", title: "定期MRE検査", detail: "活動性炎症なし。寛解維持。狭窄なし。", source: "manual" },
+      { id: "ev12", date: "2026-02-10", category: "self-log", title: "エレンタール新フレーバー試した", detail: "バニラ強め。マンゴーよりは飲みやすかった。会報で紹介されてた飲み方も試す予定。", source: "manual" },
+      { id: "ev13", date: "2026-03-05", category: "self-log", title: "会社に病気の話を改めて", detail: "健康診断のタイミングで上司に相談。以前から伝えていたが、改めて理解してもらえた。在宅勤務の調整もしやすくなった。", source: "manual" },
+      { id: "ev14", date: "2026-04-12", category: "self-log", title: "肛門周囲の違和感", detail: "夜お風呂で温めたら楽に。シャワー＋座浴を続ける。痔瘻の再発が怖いので来週受診。", source: "manual" },
+      { id: "ev15", date: "2026-05-10", category: "self-log", title: "大阪IBD総会に出席", detail: "5/19のWorld IBD Dayイベント（POOPキャラバン）の準備の話を聞いた。久しぶりに会えた人もいて元気をもらえた。", source: "manual" },
     ],
     medications: [
-      { id: "m1", name: "ステラーラ", genericName: "ウステキヌマブ", category: "biologic", dosageForm: "皮下注射", startDate: "2023-03-01", endDate: null, isActive: true, changeReason: "ヒュミラ効果減弱", sideNotes: "8週ごと自己注射" },
-      { id: "m2", name: "ペンタサ", genericName: "メサラジン", category: "5-ASA", dosageForm: "経口", startDate: "2017-05-20", endDate: null, isActive: true, changeReason: "初回処方", sideNotes: "1日4g" },
-      { id: "m3", name: "エレンタール", genericName: "成分栄養剤", category: "nutritional", dosageForm: "経口", startDate: "2017-05-20", endDate: null, isActive: true, changeReason: "栄養療法", sideNotes: "就寝前1包" },
-      { id: "m4", name: "ヒュミラ", genericName: "アダリムマブ", category: "biologic", dosageForm: "皮下注射", startDate: "2018-11-10", endDate: "2023-03-01", isActive: false, changeReason: "効果減弱", sideNotes: "" },
+      { id: "m1", name: "ステラーラ", genericName: "ウステキヌマブ", category: "biologic", dosageForm: "皮下注射", startDate: "2023-03-01", endDate: null, isActive: true, changeReason: "ヒュミラ二次無効", sideNotes: "8週ごと自己注射（次回 2026-06-上旬）" },
+      { id: "m2", name: "ペンタサ", genericName: "メサラジン", category: "5-ASA", dosageForm: "経口", startDate: "2017-05-20", endDate: null, isActive: true, changeReason: "初回処方", sideNotes: "1日4g 朝・夕" },
+      { id: "m3", name: "エレンタール", genericName: "成分栄養剤", category: "nutritional", dosageForm: "経口", startDate: "2017-05-20", endDate: null, isActive: true, changeReason: "栄養療法（在宅経腸栄養）", sideNotes: "就寝前1包（300kcal）。フレーバーで工夫" },
+      { id: "m4", name: "ヒュミラ", genericName: "アダリムマブ", category: "biologic", dosageForm: "皮下注射", startDate: "2018-11-10", endDate: "2023-03-01", isActive: false, changeReason: "二次無効・抗薬物抗体陽性化", sideNotes: "2週ごと自己注射（5年継続）" },
     ],
     labResults: [
-      { id: "l1", date: "2026-03-10", values: { crp: 0.15, hb: 13.5, wbc: 6200, alb: 4.0, esr: 8, plt: 25, ferritin: 85, ca: 9.2 } },
-      { id: "l2", date: "2025-12-05", values: { crp: 0.22, hb: 13.2, wbc: 6500, alb: 3.9, esr: 12, plt: 27, ferritin: 72, ca: 9.1 } },
-      { id: "l3", date: "2025-09-01", values: { crp: 0.18, hb: 13.8, wbc: 5900, alb: 4.1, esr: 10, plt: 24, ferritin: 95, ca: 9.3 } },
+      { id: "l1", date: "2026-04-15", values: { crp: 0.12, hb: 13.6, wbc: 6100, alb: 4.1, esr: 8, plt: 25, ferritin: 88, ca: 9.2, fcal: 45, vitB12: 380, vitD: 28, zn: 78 } },
+      { id: "l2", date: "2026-01-20", values: { crp: 0.15, hb: 13.5, wbc: 6200, alb: 4.0, esr: 9, plt: 25, ferritin: 85, ca: 9.2, fcal: 52, vitB12: 360, vitD: 25, zn: 75 } },
+      { id: "l3", date: "2025-10-15", values: { crp: 0.18, hb: 13.4, wbc: 6300, alb: 4.0, esr: 10, plt: 26, ferritin: 80, ca: 9.1, fcal: 65, vitB12: 350, vitD: 22, zn: 72 } },
+      { id: "l4", date: "2025-07-01", values: { crp: 0.22, hb: 13.2, wbc: 6500, alb: 3.9, esr: 12, plt: 27, ferritin: 72, ca: 9.1, fcal: 75, vitB12: 320, vitD: 20, zn: 68 } },
+      { id: "l5", date: "2025-04-01", values: { crp: 0.25, hb: 13.1, wbc: 6400, alb: 3.9, esr: 13, plt: 26, ferritin: 70, ca: 9.0, fcal: 82, vitB12: 310, vitD: 18, zn: 65 } },
     ],
     clinics: [
-      { id: "c1", name: "○○大学病院 IBDセンター", address: "東京都文京区", phone: "03-3815-5411", departments: ["消化器内科"], isPrimary: true, note: "クローン病のメイン。8週ごとステラーラ自己注の指導。" },
-      { id: "c2", name: "東京大腸肛門外科", address: "東京都台東区", phone: "", departments: ["大腸肛門外科"], isPrimary: false, note: "肛門病変・痔瘻のフォロー。" },
-      { id: "c3", name: "あおぞら皮膚科", address: "東京都文京区", phone: "", departments: ["皮膚科"], isPrimary: false, note: "結節性紅斑・口内炎などの腸管外症状。" },
-      { id: "c4", name: "上野栄養クリニック", address: "東京都台東区", phone: "", departments: ["栄養指導"], isPrimary: false, note: "エレンタール継続支援・食事相談。" },
+      { id: "c1", name: "大阪医科薬科大学病院 IBDセンター", address: "大阪府高槻市大学町", phone: "072-683-1221", departments: ["消化器内科"], isPrimary: true, note: "確定診断時から9年お世話になっているメイン主治医。3ヶ月毎フォロー、ステラーラの自己注指導もここ。" },
+      { id: "c2", name: "せんり大腸肛門クリニック", address: "大阪府吹田市千里山", phone: "06-6831-1111", departments: ["大腸肛門外科"], isPrimary: false, note: "肛門病変（皮垂・痔瘻フォロー）。半年〜1年に1回。" },
+      { id: "c3", name: "なかもず皮ふ科", address: "堺市北区中百舌鳥町", phone: "", departments: ["皮膚科"], isPrimary: false, note: "結節性紅斑・口内炎などCD関連腸管外症状の相談。" },
+      { id: "c4", name: "うえまち栄養指導クリニック", address: "大阪市中央区上町", phone: "", departments: ["栄養指導"], isPrimary: false, note: "エレンタール継続支援・食事相談。半年に1回。" },
     ],
     visits: [
-      { id: "v1", date: "2026-03-10", clinicId: "c1", department: "消化器内科", doctor: "本郷 健", chiefComplaint: "腹痛なく排便良好", findings: "CRP 0.15、Alb 4.0。寛解維持。MRE所見なし。", nextAction: "ステラーラ8週ごと継続。エレンタール就寝前1包。次回3ヶ月後。", photos: [], relatedMedicationIds: ["m1", "m3"], relatedLabResultIds: ["l1"], relatedTimelineEventId: "ev7" },
-      { id: "v2", date: "2025-12-05", clinicId: "c1", department: "消化器内科", doctor: "本郷 健", chiefComplaint: "微熱が続いた", findings: "感染除外。CRP 0.22。再燃の兆候なし。", nextAction: "現薬継続。発熱時は感染も考慮し相談。", photos: [], relatedMedicationIds: [], relatedLabResultIds: ["l2"], relatedTimelineEventId: null },
-      { id: "v3", date: "2025-08-20", clinicId: "c2", department: "大腸肛門外科", doctor: "台東 達也", chiefComplaint: "肛門周囲の違和感", findings: "痔瘻なし。皮垂のみ。経過観察。", nextAction: "セルフケア指導。再増悪時は再診。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
-      { id: "v4", date: "2025-10-12", clinicId: "c3", department: "皮膚科", doctor: "青空 洋子", chiefComplaint: "下腿の赤いしこり", findings: "結節性紅斑。CD関連腸管外症状。", nextAction: "局所外用＋NSAIDs短期。消化器内科に共有。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
-      { id: "v5", date: "2025-11-18", clinicId: "c4", department: "栄養指導", doctor: "上野 まり", chiefComplaint: "エレンタール継続のコツ", findings: "1日1包就寝前で継続。フレーバー工夫の提案。", nextAction: "次回6ヶ月後。困ったら都度相談。", photos: [], relatedMedicationIds: ["m3"], relatedLabResultIds: [], relatedTimelineEventId: null },
+      { id: "v1", date: "2026-04-15", clinicId: "c1", department: "消化器内科", doctor: "高槻 大樹", chiefComplaint: "腹痛なし、便回数 1〜2回/日で安定。肛門違和感を最近感じる旨を相談。", findings: "CRP 0.12、Alb 4.1、便中カルプロテクチン 45 と良好。寛解維持。HBI 2点。肛門病変は大腸肛門外科でフォロー継続を推奨。", nextAction: "ステラーラ継続（次回 6月上旬）。エレンタール就寝前1包継続。VitD補充再開。次回3ヶ月後。", photos: [], relatedMedicationIds: ["m1", "m3"], relatedLabResultIds: ["l1"], relatedTimelineEventId: null },
+      { id: "v2", date: "2026-01-20", clinicId: "c1", department: "消化器内科", doctor: "高槻 大樹", chiefComplaint: "風邪を引いた後の体調確認。発熱時の対応も相談。", findings: "感染除外確認済み。CRP 0.15。再燃の兆候なし。生物学的製剤使用中の感染対応を再確認。", nextAction: "現薬継続。38度以上の発熱時は連絡を。次回3ヶ月後。", photos: [], relatedMedicationIds: [], relatedLabResultIds: ["l2"], relatedTimelineEventId: null },
+      { id: "v3", date: "2025-10-15", clinicId: "c1", department: "消化器内科", doctor: "高槻 大樹", chiefComplaint: "MRE検査の結果説明", findings: "MREで小腸の活動性炎症なし、狭窄なし。寛解維持確認。", nextAction: "ステラーラ8週ごと継続。次回3ヶ月後にCRP・カルプロテクチン再評価。", photos: [], relatedMedicationIds: ["m1"], relatedLabResultIds: ["l3"], relatedTimelineEventId: "ev11" },
+      { id: "v4", date: "2025-08-20", clinicId: "c2", department: "大腸肛門外科", doctor: "千里 拓也", chiefComplaint: "肛門周囲の皮垂と時々の違和感の確認", findings: "皮垂のみ。瘻孔の再発なし。坐浴とシャワーケアの継続を指導。", nextAction: "セルフケア継続。違和感増悪時は早めに再診。次回1年後で良い。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
+      { id: "v5", date: "2025-12-08", clinicId: "c3", department: "皮膚科", doctor: "百舌鳥 玲子", chiefComplaint: "下腿に赤いしこり（再発）", findings: "結節性紅斑（再発）。CD関連の腸管外症状として典型的。", nextAction: "ステロイド外用＋NSAIDs短期。消化器内科に共有。1ヶ月後フォロー。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
+      { id: "v6", date: "2025-11-18", clinicId: "c4", department: "栄養指導", doctor: "上町 まり子", chiefComplaint: "エレンタールの継続のコツ。職場で続ける工夫を相談。", findings: "1日1包（300kcal）就寝前で継続。フレーバーローテーション提案、コーヒー風味の追加紹介。", nextAction: "次回6ヶ月後。生活変化時は都度相談OK。", photos: [], relatedMedicationIds: ["m3"], relatedLabResultIds: [], relatedTimelineEventId: null },
     ],
   },
 

@@ -80,6 +80,30 @@
           </div>
           <span class="material-symbols-outlined chevron">chevron_right</span>
         </a>
+        <a class="settings-row" id="link-meal" href="/simple/meal.html">
+          <span class="material-symbols-outlined">restaurant</span>
+          <div style="flex:1;">
+            <div class="label">ごはんメモ</div>
+            <div class="sub">撮るだけ・後で振り返れます</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
+        <a class="settings-row" id="link-talk" href="/simple/talk.html">
+          <span class="material-symbols-outlined">forum</span>
+          <div style="flex:1;">
+            <div class="label">ひとりごとを聞いてもらう</div>
+            <div class="sub">AI が共感だけで聞きます</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
+        <a class="settings-row" id="link-minimal" href="/simple/minimal.html">
+          <span class="material-symbols-outlined">monitor_weight</span>
+          <div style="flex:1;">
+            <div class="label">最小モード</div>
+            <div class="sub">体重・体温・気になることだけ</div>
+          </div>
+          <span class="material-symbols-outlined chevron">chevron_right</span>
+        </a>
         <a class="settings-row" id="link-resources" href="/resources.html">
           <span class="material-symbols-outlined">groups</span>
           <div style="flex:1;">
@@ -122,7 +146,7 @@
       try { await initLiff(); } catch (_) { /* デモモードでも動く */ }
 
       // すべての記録系リンクに ?disease=xxx&from=simple を付ける
-      ["link-meds","link-labs","link-symptom","link-restroom","link-resources","link-clinics","link-disease"].forEach((id) => {
+      ["link-meds","link-labs","link-symptom","link-restroom","link-meal","link-talk","link-minimal","link-resources","link-clinics","link-disease"].forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;
         const url = new URL(el.getAttribute("href"), location.origin);

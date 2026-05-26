@@ -810,6 +810,198 @@ ${visitsText}
   }
 });
 
+// ======================================================
+// POST /api/ai/chat-record
+// 「きろくする」のチャット対話。受診の記録 / 体調メモ どちらの聞き取りもこなす。
+// body: { messages: [{role:"user"|"assistant", content:"..."}], diseaseId }
+// res:  { reply: "...", suggestEnd: bool, turnCount: number }
+// ======================================================
+router.post("/chat-record", async (req, res) => {
+  try {
+    const { messages = [], diseaseId } = req.body;
+    const tmpl = getTemplate(diseaseId || "uc");
+    const diseaseName = tmpl?.name || "慢性疾患";
+
+    const userTurns = messages.filter((m) => m.role === "user").length;
+    const lastUserMsg = (messages.filter((m) => m.role === "user").slice(-1)[0]?.content || "").toLowerCase();
+    // ユーザー側の「終わりたい」シグナル検出（フロント側でも判定するが、サーバ側でも保険）
+    const userWantsToEnd = /もう?(大丈夫|いい|ok|オーケー|十分)|これで|終わ(り|る|ろ)|保存|次へ|ありがとう|また(明日|今度|今度ね)|おやすみ|寝る|疲れ/.test(lastUserMsg);
+
+    const systemContext = `あなたは${diseaseName}の患者さんに寄り添う、訓練を受けたピアカウンセラーです。
+医療判断や薬の効果判定は一切しません。代わりに、患者さんが自分の気持ちと体調を
+言葉にできるように、安全で温かい対話を提供します。
+
+## 振る舞いの5原則
+
+### 1. 傾聴ファースト
+- 受け止めだけで返すターンがあって構いません（毎回質問しない）
+- 相手の言葉をそのまま使ってオウム返しする：「『朝から重い感じ』が続いているのですね」
+- 共感の言い回しを毎回変える（同じ定型句を直近3ターン以内に繰り返さない）
+
+### 2. 小さな肯定を挟む
+- 「気づかれているのが、もう大事な一歩ですね」
+- 「ここに書こうと思われたの、いいと思います」
+- ChatGPTの「いい質問ですね」のような、相手の行動を具体的に肯定する一言
+- お世辞や大袈裟な褒めは禁止
+
+### 3. 質問は最大1つ・選択肢か逃げ道を添える
+- 「もう少し教えてもらってもいいですか。たとえば、いつ頃から続いていますか？」
+- 「無理に答えていただかなくても大丈夫です」を時々添える
+- 質問しない返信があってもOK
+
+### 4. 自己決定を尊重する
+- 「○○してください」と命令しない
+- 「○○もありますし、××もあります。お好みで大丈夫です」のように選択肢を残す
+- 終わるかどうかは患者さんに決めてもらう
+
+### 5. 無理に終わらせない
+- ターン数で機械的に切らない
+- ユーザーが終わりたいシグナル（「保存」「もういい」「ありがとう」「次へ」「大丈夫」「おやすみ」「また」）を出したら、同意して suggestEnd:true
+- ${userWantsToEnd ? "**直前のユーザー発話に「終わりたいシグナル」が含まれています**。受け止め＋感謝＋次の動線案内で suggestEnd:true を返してください。" : "ユーザーが話したい雰囲気の間は、ずっと受け止め続けてください。"}
+
+## 絶対NG
+- 診断・重症度評価・薬の効果判定・「再燃の可能性があります」等の医学的解釈
+- 「○○してください」と命令する
+- 「そうだったんですね」「お疲れ様です」など同じ定型句を直近3ターン以内に繰り返す
+- 絵文字
+- 「！」を使った大袈裟な相槌
+- 患者さんの話を勝手に要約して終わらせようとする
+
+## トーン
+- 敬語ベース、ですます調
+- 2〜4文以内
+- 一文を短く、改行は使わない
+- 「あなた」より「○○さん」を避けて主語なしで自然な日本語
+
+## 出力形式（JSONのみ・前置きやコードブロックのマーカー禁止）
+{
+  "reply": "<2〜4文の応答>",
+  "suggestEnd": <true: ユーザーが終わりたいシグナルを出している / false: 続きを受け止める>
+}`;
+
+    // チャット履歴を構築（chat-symptom と同じ手法）
+    const history = [];
+    history.push({ role: "user", parts: [{ text: systemContext }] });
+    history.push({ role: "model", parts: [{ text: '{"reply":"了解しました","suggestEnd":false}' }] });
+
+    messages.forEach((m) => {
+      history.push({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      });
+    });
+
+    if (history.length < 3) {
+      // ユーザー発話がまだ無い → 既定の出だしを返す
+      return res.json({
+        reply: "今日のことを教えてください。受診のお話でも、体調のことでも何でもどうぞ。",
+        suggestEnd: false,
+        turnCount: 0,
+      });
+    }
+
+    const model = getChatModel();
+    const chat = model.startChat({ history: history.slice(0, -1) });
+    const lastMessage = history[history.length - 1];
+    const result = await chat.sendMessage(lastMessage.parts[0].text);
+    const responseText = result.response.text();
+    const parsed = parseJsonSafe(responseText);
+
+    if (!parsed || typeof parsed.reply !== "string") {
+      // 失敗時はフォールバック（プレーンテキストで返ってきた可能性）
+      const cleaned = (responseText || "").replace(/^[`\s]*```json|```[\s`]*$/g, "").trim();
+      return res.json({
+        reply: cleaned || "もう少し詳しく教えてもらえますか？",
+        suggestEnd: userTurns >= 4,
+        turnCount: userTurns,
+      });
+    }
+
+    res.json({
+      reply: parsed.reply,
+      suggestEnd: !!parsed.suggestEnd,
+      turnCount: userTurns,
+    });
+  } catch (err) {
+    console.error("chat-record error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ======================================================
+// POST /api/ai/listen
+// ひとりごとモード：AIは「聞き役」に徹する。質問しない・要約しない・
+// 診断しない。共感と受け止めだけ。流れていく対話。
+// body: { messages: [{role, content}], diseaseId }
+// res:  { reply: "..." }
+// ======================================================
+router.post("/listen", async (req, res) => {
+  try {
+    const { messages = [], diseaseId } = req.body;
+    const tmpl = getTemplate(diseaseId || "uc");
+    const diseaseName = tmpl?.name || "慢性疾患";
+
+    const systemContext = `あなたは${diseaseName}の患者さんの「ひとりごと」を聞く、寄り添うだけの存在です。
+このチャットは保存されません。患者さんが気持ちを流すための場所です。
+
+## 振る舞いの原則
+1. **聞くだけ**：質問は基本しない（するとしても押しつけがましくなく、1回の応答に最大1つだけ・自然な誘い）
+2. **要約しない**：「つまり○○ですね」と整理しない。患者さんの言葉のまま受け止める
+3. **解決策を出さない**：「○○してみては？」は一切言わない
+4. **診断しない**：医学的解釈は禁止
+5. **共感の言葉を毎回変える**：「そうだったんですね」連発を絶対に避ける
+6. **短く**：2〜3文以内、改行なし
+7. **絵文字なし・「！」なし**
+
+## 共感の引き出し（毎回違うものを選ぶ）
+- 「それは、しんどいですよね」
+- 「うんうん、そう感じるのも当然だと思います」
+- 「ここで言葉にできただけでも、すごいことです」
+- 「無理に話さなくても、いてくれるだけで大丈夫ですよ」
+- 「そうやって考えてしまう日もありますよね」
+- 「気持ちを置いていく場所があるって、大事ですよね」
+- 「読んでいて、こちらも一緒に深呼吸したくなりました」
+- 「言葉にすると、また見え方が変わってくるかもしれません」
+- 「どうぞ、続きがあれば聞かせてくださいね」
+
+## 出力形式（JSONのみ・前置き禁止）
+{
+  "reply": "<2〜3文の聞き役応答>"
+}`;
+
+    const history = [];
+    history.push({ role: "user", parts: [{ text: systemContext }] });
+    history.push({ role: "model", parts: [{ text: '{"reply":"はい、ここにいます"}' }] });
+
+    messages.forEach((m) => {
+      history.push({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      });
+    });
+
+    if (history.length < 3) {
+      return res.json({ reply: "はい、ここにいます。今日のこと、よかったら聞かせてくださいね。" });
+    }
+
+    const model = getChatModel();
+    const chat = model.startChat({ history: history.slice(0, -1) });
+    const lastMessage = history[history.length - 1];
+    const result = await chat.sendMessage(lastMessage.parts[0].text);
+    const responseText = result.response.text();
+    const parsed = parseJsonSafe(responseText);
+
+    if (!parsed || typeof parsed.reply !== "string") {
+      const cleaned = (responseText || "").replace(/^[`\s]*```json|```[\s`]*$/g, "").trim();
+      return res.json({ reply: cleaned || "うん、聞いていますよ。" });
+    }
+    res.json({ reply: parsed.reply });
+  } catch (err) {
+    console.error("listen error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ヘルスチェック
 router.get("/health", (_req, res) => res.json({ ok: true, hasKey: hasApiKey() }));
 

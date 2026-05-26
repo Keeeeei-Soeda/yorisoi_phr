@@ -85,7 +85,31 @@
       width: 100%; margin-top: 10px; padding: 10px;
       background: var(--white); border: 1.5px solid var(--brand-400);
       color: var(--brand-700); border-radius: 12px; font-weight: 700; cursor: pointer;
+      transition: all 0.2s ease;
     }
+    .chat-end-btn.promoted {
+      background: var(--brand-500); color: #fff;
+      border-color: var(--brand-500);
+      box-shadow: 0 4px 12px rgba(244,167,176,0.5);
+      animation: cta-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes cta-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    /* タイピングインジケータ */
+    .chat-msg.typing { display: inline-flex; align-items: center; gap: 4px; padding: 12px 14px; }
+    .chat-msg.typing .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--gray-400);
+      animation: typing-bounce 1.2s infinite ease-in-out;
+    }
+    .chat-msg.typing .dot:nth-child(2) { animation-delay: 0.15s; }
+    .chat-msg.typing .dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes typing-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-4px); opacity: 1; }
+    }
+    .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* ========= ペイン2: 整理 ========= */
     .confirm-card {
@@ -390,40 +414,124 @@
       }
     }
 
-    /* ============ AIチャット ============ */
+    /* ============ AIチャット（LLM対話） ============ */
+    let chatTyping = false;
+    let chatEnded = false;
+
+    // 時間帯で初期メッセージを変える（カウンセラーらしさ）
+    function pickWelcomeMessage() {
+      const h = new Date().getHours();
+      const candidates = h >= 5 && h < 10
+        ? [
+            "おはようございます。今朝はどんな調子ですか。無理に話さなくても、聞いているだけで大丈夫です。",
+            "おはようございます。眠れましたか。今日のはじまりに、少しだけ気持ちを置いていきませんか。",
+          ]
+        : h >= 10 && h < 17
+        ? [
+            "こんにちは。今日はどんなことをここに残しておきましょうか。受診のお話でも、体調のことでも、何でも大丈夫です。",
+            "こんにちは。少しお時間ありますか。気になっていること、よければ聞かせてください。",
+          ]
+        : h >= 17 && h < 20
+        ? [
+            "お疲れさまです。今日はどんな一日でしたか。覚えておきたいことがあれば、ここに置いていけます。",
+            "夕方ですね。今日あったこと、少しだけ整理しませんか。受診のことでも、ただの愚痴でも大丈夫です。",
+          ]
+        : [
+            "こんばんは。今日もお疲れさまでした。今日あったこと、少しだけお話ししませんか。",
+            "こんばんは。一日の終わりに、ここで気持ちを置いていきませんか。眠る前の数分でも大丈夫です。",
+          ];
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+
     function toggleChat() {
       const area = document.getElementById("chat-area");
       const icon = document.getElementById("chat-toggle-icon");
       area.classList.toggle("open");
       icon.textContent = area.classList.contains("open") ? "expand_less" : "expand_more";
       if (area.classList.contains("open") && chatMessages.length === 0) {
-        // 初期メッセージ
-        chatMessages.push({ role: "ai", text: "今日のことを教えてください。受診のお話でも、体調のことでも何でもOKです。" });
+        chatMessages.push({ role: "ai", text: pickWelcomeMessage() });
         renderChat();
       }
     }
+
     function renderChat() {
       const wrap = document.getElementById("chat-msgs");
-      wrap.innerHTML = chatMessages.map(m => `<div class="chat-msg ${m.role === "ai" ? "ai" : "me"}">${escHTML(m.text)}</div>`).join("");
+      const html = chatMessages.map((m) =>
+        `<div class="chat-msg ${m.role === "ai" ? "ai" : "me"}">${escHTML(m.text)}</div>`
+      ).join("");
+      const typingHtml = chatTyping
+        ? '<div class="chat-msg ai typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>'
+        : "";
+      wrap.innerHTML = html + typingHtml;
       wrap.scrollTop = wrap.scrollHeight;
     }
+
+    function setEndPromoted(on) {
+      const btn = document.getElementById("chat-end-btn");
+      if (!btn) return;
+      btn.classList.toggle("promoted", !!on);
+      btn.textContent = on ? "✓ この内容で次へ進む" : "この内容で次へ";
+    }
+
+    function getDiseaseIdFromUrl() {
+      const m = location.search.match(/[?&]disease=([^&]+)/);
+      return m ? decodeURIComponent(m[1]) : "uc";
+    }
+
+    // ユーザー側の「終わりたいシグナル」を検出
+    function detectUserWantsToEnd(text) {
+      const t = text.toLowerCase();
+      return /もう?(大丈夫|いい|ok|オーケー|十分)|これで|終わ(り|る|ろ)|保存|次へ|ありがとう|また(明日|今度|ね)|おやすみ|寝る/.test(t);
+    }
+
     async function sendChat() {
       const input = document.getElementById("chat-input");
+      const sendBtn = document.getElementById("chat-send-btn");
       const text = input.value.trim();
-      if (!text) return;
+      if (!text || chatTyping) return;
+
       chatMessages.push({ role: "me", text });
       input.value = "";
+      chatTyping = true;
+      sendBtn.disabled = true;
       renderChat();
-      // 簡易AI応答（ローカル生成）: もう少し詳しく聞く
-      const followUps = [
-        "なるほど。他に気になっていることはありますか？",
-        "もう少し詳しく教えてもらえますか？",
-        "それはいつ頃から続いていますか？",
-        "他にお伝えしたいことがあればどうぞ。",
-      ];
-      const reply = followUps[Math.min(chatMessages.filter(m => m.role === "ai").length, followUps.length - 1)];
-      chatMessages.push({ role: "ai", text: reply });
-      renderChat();
+
+      // ユーザーが終わりたい雰囲気なら、AI応答を待たずにCTAを目立たせる
+      if (detectUserWantsToEnd(text) && !chatEnded) {
+        chatEnded = true;
+        setEndPromoted(true);
+      }
+
+      try {
+        // ai.js は role:"user"/"assistant", content を期待
+        const apiMessages = chatMessages.map((m) => ({
+          role: m.role === "ai" ? "assistant" : "user",
+          content: m.text,
+        }));
+        const res = await fetch("/api/ai/chat-record", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: apiMessages, diseaseId: getDiseaseIdFromUrl() }),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        chatTyping = false;
+        sendBtn.disabled = false;
+        chatMessages.push({ role: "ai", text: data.reply || "..." });
+        renderChat();
+        if (data.suggestEnd && !chatEnded) {
+          chatEnded = true;
+          setEndPromoted(true);
+        }
+      } catch (err) {
+        chatTyping = false;
+        sendBtn.disabled = false;
+        chatMessages.push({
+          role: "ai",
+          text: "（AIの応答が取れませんでした：" + (err.message || err) + "）もう少し詳しく教えてもらえますか？",
+        });
+        renderChat();
+      }
     }
     function endChat() {
       // チャット内容を rawText にまとめる（自分の発言だけ繋げる）
@@ -662,6 +770,24 @@
       attach();
       try { clinics = await apiGet("/api/clinics") || []; } catch (_) { clinics = []; }
       showPane("input");
+
+      // ホームの「困りごと質問」から intent パラメータで遷移してきた時のおもてなし
+      const intent = new URLSearchParams(location.search).get("intent");
+      if (intent === "chat") {
+        // 「気持ちを聞いてほしい」→ AIチャットを最初から開いておく
+        toggleChat();
+        setTimeout(() => {
+          document.getElementById("chat-area")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 200);
+      } else if (intent === "selflog") {
+        // 「今日の体調を残しておきたい」→ AIに体調メモのヒントを渡す
+        const ta = document.getElementById("raw-text");
+        if (ta) ta.placeholder = "例: 今日は朝から少し疲れた感じ。便通は普通…";
+      } else if (intent === "visit") {
+        // 「病院で言われたことをメモしたい」→ 受診のヒントを渡す
+        const ta = document.getElementById("raw-text");
+        if (ta) ta.placeholder = "例: 今日先生にこう言われた／次は◯ヶ月後／お薬は…";
+      }
     });
   </script>
 </body>
