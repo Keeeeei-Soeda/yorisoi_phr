@@ -1,0 +1,321 @@
+{
+  "id": "leukemia",
+  "name": "白血病",
+  "shortName": "白血病",
+  "description": "白血病（CML・AML・ALL等）の治療歴・薬・検査値・体験記を管理",
+  "color": "#1A4B8C",
+  "icon": "hematology",
+
+  "subtypes": [
+    { "id": "cml",  "label": "慢性骨髄性白血病（CML）" },
+    { "id": "aml",  "label": "急性骨髄性白血病（AML）" },
+    { "id": "all",  "label": "急性リンパ性白血病（ALL）" },
+    { "id": "cll",  "label": "慢性リンパ性白血病（CLL）" },
+    { "id": "other","label": "その他の白血病" }
+  ],
+
+  "modules": [
+    {
+      "id": "timeline",
+      "label": "治療タイムライン",
+      "description": "診断・入院・薬変更・移植などを時系列で管理",
+      "icon": "timeline",
+      "page": "timeline.html",
+      "enabled": true,
+      "core": true
+    },
+    {
+      "id": "medications",
+      "label": "おくすり管理",
+      "description": "分子標的薬・抗がん剤・支持療法薬を管理",
+      "icon": "medication",
+      "page": "medications.html",
+      "enabled": true,
+      "core": true
+    },
+    {
+      "id": "lab-tracker",
+      "label": "検査値きろく",
+      "description": "白血球・PCR値・血小板などの推移をグラフ表示",
+      "icon": "science",
+      "page": "lab-tracker.html",
+      "enabled": true,
+      "core": true
+    },
+    {
+      "id": "symptom-log",
+      "label": "体調きろく",
+      "description": "倦怠感・発熱・出血傾向など毎日の体調を記録",
+      "icon": "edit_note",
+      "page": "symptom-log.html",
+      "enabled": true
+    },
+    {
+      "id": "stories",
+      "label": "患者体験記",
+      "description": "他の患者さんの治療体験を読む（事実・感情を分けて表示）",
+      "icon": "auto_stories",
+      "page": "stories.html",
+      "enabled": true,
+      "core": true
+    },
+    {
+      "id": "emergency-card",
+      "label": "緊急カード",
+      "description": "救急・検査時に見せる情報カード",
+      "icon": "emergency",
+      "page": "emergency-card.html",
+      "enabled": true,
+      "core": true
+    },
+    {
+      "id": "summary",
+      "label": "診察用サマリー",
+      "description": "診察時に医師に見せる画面",
+      "icon": "description",
+      "page": "summary.html",
+      "enabled": true,
+      "core": true,
+      "fullWidth": true
+    }
+  ],
+
+  "symptomConfig": {
+    "title": "体調きろく",
+    "metrics": [
+      {
+        "id": "fatigue",
+        "label": "倦怠感",
+        "type": "scale",
+        "min": 0,
+        "max": 5,
+        "labels": ["なし", "軽微", "少しつらい", "つらい", "かなりつらい", "動けない"]
+      },
+      {
+        "id": "fever",
+        "label": "発熱（37.5℃以上）",
+        "type": "toggle",
+        "dangerColor": true,
+        "note": "好中球減少時は即受診"
+      },
+      {
+        "id": "bleeding",
+        "label": "出血傾向（鼻血・歯茎・内出血）",
+        "type": "toggle",
+        "dangerColor": true
+      },
+      {
+        "id": "nausea",
+        "label": "吐き気・嘔吐",
+        "type": "toggle"
+      },
+      {
+        "id": "appetite",
+        "label": "食欲低下",
+        "type": "toggle"
+      },
+      {
+        "id": "edema",
+        "label": "浮腫（むくみ）",
+        "type": "toggle",
+        "note": "TKI（イマチニブ等）の副作用として頻度高"
+      },
+      {
+        "id": "skinRash",
+        "label": "皮膚症状（発疹・GVHDの可能性）",
+        "type": "toggle",
+        "dangerColor": true
+      },
+      {
+        "id": "painScore",
+        "label": "痛み",
+        "type": "scale",
+        "min": 0,
+        "max": 5
+      },
+      {
+        "id": "activity",
+        "label": "活動量",
+        "type": "scale",
+        "min": 0,
+        "max": 5,
+        "labels": ["寝たきり", "ほぼ横になる", "座れる", "短時間外出", "通常生活", "制限なし"]
+      }
+    ],
+    "summaryMetrics": [
+      { "id": "fatigue",  "label": "平均倦怠感",   "aggregate": "avg" },
+      { "id": "fever",    "label": "発熱日数",     "aggregate": "countTrue" },
+      { "id": "bleeding", "label": "出血傾向日数", "aggregate": "countTrue" },
+      { "id": "activity", "label": "平均活動量",   "aggregate": "avg" }
+    ]
+  },
+
+  "labConfig": {
+    "note": "治療フェーズや薬剤によって重点管理項目が異なります。主治医の指示に従ってください。",
+    "items": [
+      {
+        "id": "wbc",
+        "label": "白血球数",
+        "unit": "/μL",
+        "normalRange": [3500, 9000],
+        "warnLow": 1000,
+        "warnHigh": 30000,
+        "note": "CML: 治療効果の主要指標。好中球減少時は感染リスク増大"
+      },
+      {
+        "id": "neutrophil",
+        "label": "好中球数（ANC）",
+        "unit": "/μL",
+        "normalRange": [1800, 7500],
+        "warnLow": 500,
+        "dangerLow": 100,
+        "note": "<500で発熱性好中球減少症リスク。<100で緊急"
+      },
+      {
+        "id": "plt",
+        "label": "血小板数",
+        "unit": "万/μL",
+        "normalRange": [15, 40],
+        "warnLow": 5,
+        "dangerLow": 2,
+        "note": "<5万で出血リスク。<2万で輸血検討"
+      },
+      {
+        "id": "hb",
+        "label": "ヘモグロビン（Hb）",
+        "unit": "g/dL",
+        "normalRange": [11.5, 17.5],
+        "warnLow": 8,
+        "dangerLow": 7,
+        "note": "<8で輸血を考慮"
+      },
+      {
+        "id": "blast",
+        "label": "芽球率",
+        "unit": "%",
+        "normalRange": [0, 5],
+        "warnHigh": 5,
+        "dangerHigh": 20,
+        "note": "AML: 20%以上で急性白血病と診断。経過観察中に上昇したら要注意"
+      },
+      {
+        "id": "bcr_abl_is",
+        "label": "BCR-ABL1（IS%）",
+        "unit": "%IS",
+        "normalRange": [0, 0.1],
+        "warnHigh": 1.0,
+        "note": "CML専用: 0.1%以下でMMR（分子遺伝学的大奏功）。感度以下でCMR/DMR"
+      },
+      {
+        "id": "wbc_diff_basophil",
+        "label": "好塩基球率",
+        "unit": "%",
+        "normalRange": [0, 1],
+        "warnHigh": 3,
+        "note": "CML: 増加は急性転化の前兆の可能性あり"
+      },
+      {
+        "id": "crp",
+        "label": "CRP",
+        "unit": "mg/dL",
+        "normalRange": [0, 0.3],
+        "warnHigh": 1.0
+      },
+      {
+        "id": "ldh",
+        "label": "LDH",
+        "unit": "U/L",
+        "normalRange": [120, 245],
+        "warnHigh": 500,
+        "note": "腫瘍崩壊の指標。化学療法中は要注意"
+      },
+      {
+        "id": "uricAcid",
+        "label": "尿酸値",
+        "unit": "mg/dL",
+        "normalRange": [2.5, 7.0],
+        "warnHigh": 8.0,
+        "note": "化学療法開始後の腫瘍崩壊症候群に注意"
+      },
+      {
+        "id": "alt",
+        "label": "ALT",
+        "unit": "U/L",
+        "normalRange": [5, 40],
+        "warnHigh": 80,
+        "note": "TKI（分子標的薬）の肝毒性モニタリング"
+      },
+      {
+        "id": "cre",
+        "label": "クレアチニン",
+        "unit": "mg/dL",
+        "normalRange": [0.5, 1.0],
+        "warnHigh": 1.5
+      }
+    ],
+    "cmlResponseCriteria": {
+      "title": "CML治療効果判定（参考）",
+      "levels": [
+        { "id": "chr",  "label": "CHR（血液学的完全奏功）",      "criteria": "白血球数正常化・症状消失" },
+        { "id": "ccyr", "label": "CCyR（細胞遺伝学的完全奏功）", "criteria": "Ph染色体0%" },
+        { "id": "mmr",  "label": "MMR（分子遺伝学的大奏功）",    "criteria": "BCR-ABL1 IS ≤0.1%" },
+        { "id": "dmr",  "label": "DMR（深い分子遺伝学的奏功）",  "criteria": "BCR-ABL1 IS ≤0.01%（MR4）" },
+        { "id": "cmr",  "label": "CMR（分子遺伝学的完全奏功）",  "criteria": "PCR感度以下（検出不能）" }
+      ]
+    }
+  },
+
+  "timelineCategories": [
+    { "id": "diagnosis",         "label": "診断",         "color": "#dbeafe" },
+    { "id": "treatment_start",   "label": "治療開始",     "color": "#d1fae5" },
+    { "id": "medication_change", "label": "薬変更",       "color": "#bbf7d0" },
+    { "id": "remission",         "label": "寛解達成",     "color": "#a7f3d0" },
+    { "id": "relapse",           "label": "再発",         "color": "#fca5a5" },
+    { "id": "transplant",        "label": "移植",         "color": "#c7d2fe" },
+    { "id": "hospitalization",   "label": "入院",         "color": "#fde68a" },
+    { "id": "exam",              "label": "検査・骨髄穿刺","color": "#e9d5ff" },
+    { "id": "side_effect",       "label": "副作用対応",   "color": "#fed7aa" },
+    { "id": "tfr",               "label": "休薬（TFR）",  "color": "#f0f9ff" },
+    { "id": "other",             "label": "その他",       "color": "#e5e5e5" }
+  ],
+
+  "emergencyConfig": {
+    "title": "緊急情報カード",
+    "subtitle": "白血病",
+    "fields": [
+      { "id": "leukemiaType",    "label": "病型",          "placeholder": "例: 慢性骨髄性白血病（CML）" },
+      { "id": "treatmentPhase",  "label": "治療フェーズ",  "placeholder": "例: 分子標的薬内服中・経過観察中" },
+      { "id": "currentDrug",     "label": "現在の主な薬",  "placeholder": "例: イマチニブ400mg/日" },
+      { "id": "transplantHx",    "label": "移植歴",        "placeholder": "例: 造血幹細胞移植（2022年3月）" },
+      { "id": "latestANC",       "label": "直近の好中球数（ANC）", "placeholder": "例: 1800/μL（2025年4月）" }
+    ],
+    "warnings": [
+      "免疫抑制状態のため感染リスクが高い",
+      "発熱（37.5℃以上）時は即座に血液内科受診が必要",
+      "出血・内出血・血小板減少に注意",
+      "分子標的薬（TKI）服用中のため薬物相互作用に注意",
+      "移植後はGVHD（移植片対宿主病）の可能性あり",
+      "造血能低下中の場合は生ワクチン禁忌"
+    ]
+  },
+
+  "storiesConfig": {
+    "diseaseFilter": ["leukemia", "cml", "aml", "all", "cll"],
+    "phases": [
+      { "id": "diagnosis",       "label": "診断期",         "color": "#dbeafe", "icon": "search" },
+      { "id": "treatment_start", "label": "治療開始",       "color": "#d1fae5", "icon": "medication" },
+      { "id": "ongoing",         "label": "治療継続",       "color": "#bbf7d0", "icon": "loop" },
+      { "id": "observation",     "label": "経過観察",       "color": "#e0f2fe", "icon": "monitor_heart" },
+      { "id": "relapse",         "label": "再発・治療変更", "color": "#fee2e2", "icon": "warning" },
+      { "id": "remission",       "label": "寛解・回復",     "color": "#f0fdf4", "icon": "check_circle" }
+    ],
+    "factTagCategories": [
+      { "id": "drug",            "label": "💊 薬・治療法",       "color": "#dbeafe" },
+      { "id": "side_effect",     "label": "⚠️ 副作用",           "color": "#fef3c7" },
+      { "id": "lab_value",       "label": "📊 検査値",           "color": "#f3e8ff" },
+      { "id": "work_life",       "label": "💼 仕事・生活",       "color": "#dcfce7" },
+      { "id": "decision",        "label": "🔀 意思決定",         "color": "#ffe4e6" },
+      { "id": "communication",   "label": "🏥 医師・病院",       "color": "#e0f2fe" }
+    ]
+  }
+}
