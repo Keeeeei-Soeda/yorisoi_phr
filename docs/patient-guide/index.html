@@ -134,18 +134,7 @@
         .replace(/^-+|-+$/g, "");
     }
 
-    marked.use({
-      gfm: true,
-      breaks: true,
-      renderer: {
-        heading(token) {
-          const text = this.parser.parseInline(token.tokens);
-          const plain = text.replace(/<[^>]+>/g, "");
-          const id = slugify(plain);
-          return `<h${token.depth} id="${id}">${text}</h${token.depth}>\n`;
-        },
-      },
-    });
+    marked.use({ gfm: true, breaks: true });
 
     fetch("README.md")
       .then((res) => {
@@ -153,8 +142,12 @@
         return res.text();
       })
       .then((md) => {
-        document.getElementById("content").classList.remove("loading");
-        document.getElementById("content").innerHTML = marked.parse(md);
+        const el = document.getElementById("content");
+        el.classList.remove("loading");
+        el.innerHTML = marked.parse(md);
+        el.querySelectorAll("h1,h2,h3,h4").forEach((heading) => {
+          if (!heading.id) heading.id = slugify(heading.textContent);
+        });
       })
       .catch((err) => {
         document.getElementById("content").className = "error";
