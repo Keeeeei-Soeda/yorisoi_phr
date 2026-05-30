@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+  <title>よりそい PHR　使い方ガイド（骨形成不全症）</title>
+  <meta name="description" content="骨形成不全症（OI）の方向け、よりそい PHR の使い方ガイド">
+  <style>
+    :root {
+      --brand: #ee8b97;
+      --brand-dark: #c96b76;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --bg: #fafafa;
+      --card: #ffffff;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .site-header {
+      background: linear-gradient(135deg, #f4a7b0, var(--brand));
+      color: #fff;
+      padding: 28px 20px 24px;
+      text-align: center;
+    }
+    .site-header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: 0.08em;
+    }
+    .site-header p {
+      margin: 8px 0 0;
+      font-size: 0.85rem;
+      opacity: 0.95;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+    }
+    #content {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    #content h1 { font-size: 1.5rem; margin-top: 0; }
+    #content h2 {
+      font-size: 1.25rem;
+      margin-top: 2.2em;
+      padding-bottom: 0.35em;
+      border-bottom: 2px solid var(--brand);
+      scroll-margin-top: 16px;
+    }
+    #content h3 { font-size: 1.05rem; margin-top: 1.6em; }
+    #content h4 { font-size: 0.95rem; margin-top: 1.2em; }
+    #content p, #content li { font-size: 0.95rem; }
+    #content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: block;
+      margin: 12px auto;
+    }
+    #content blockquote {
+      margin: 16px 0;
+      padding: 12px 16px;
+      background: #f0f9ff;
+      border-left: 4px solid #38bdf8;
+      border-radius: 0 8px 8px 0;
+      color: #075985;
+      font-size: 0.9rem;
+    }
+    #content table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #content th, #content td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    #content th { background: #fdf2f4; }
+    #content a { color: var(--brand-dark); word-break: break-word; }
+    #content hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+    #content ul, #content ol { padding-left: 1.4em; }
+    .loading {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+    }
+    .error {
+      color: #b91c1c;
+      text-align: center;
+      padding: 24px;
+    }
+    @media (max-width: 480px) {
+      .container { padding: 12px 12px 40px; }
+      #content { padding: 18px 14px; border-radius: 12px; }
+      #content h1 { font-size: 1.3rem; }
+      #content h2 { font-size: 1.15rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <h1>よりそい PHR</h1>
+    <p>骨形成不全症（OI）の方向け 使い方ガイド</p>
+  </header>
+  <main class="container">
+    <article id="content" class="loading">読み込み中…</article>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script>
+    function slugify(text) {
+      return text
+        .trim()
+        .toLowerCase()
+        .replace(/[.\u3000]/g, "")
+        .replace(/[^\w\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
+    marked.use({
+      gfm: true,
+      breaks: true,
+      renderer: {
+        heading({ text, depth }) {
+          const plain = text.replace(/<[^>]+>/g, "");
+          const id = slugify(plain);
+          return `<h${depth} id="${id}">${text}</h${depth}>`;
+        },
+      },
+    });
+
+    fetch("README.md")
+      .then((res) => {
+        if (!res.ok) throw new Error("README.md を読み込めませんでした");
+        return res.text();
+      })
+      .then((md) => {
+        document.getElementById("content").classList.remove("loading");
+        document.getElementById("content").innerHTML = marked.parse(md);
+      })
+      .catch((err) => {
+        document.getElementById("content").className = "error";
+        document.getElementById("content").textContent = err.message;
+      });
+  </script>
+</body>
+</html>
