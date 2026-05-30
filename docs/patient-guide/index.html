@@ -138,10 +138,11 @@
       gfm: true,
       breaks: true,
       renderer: {
-        heading({ text, depth }) {
+        heading(token) {
+          const text = this.parser.parseInline(token.tokens);
           const plain = text.replace(/<[^>]+>/g, "");
           const id = slugify(plain);
-          return `<h${depth} id="${id}">${text}</h${depth}>`;
+          return `<h${token.depth} id="${id}">${text}</h${token.depth}>\n`;
         },
       },
     });
