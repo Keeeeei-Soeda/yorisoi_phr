@@ -229,6 +229,39 @@
       try { localStorage.setItem(INTENT_KEY, new Date().toISOString()); } catch (e) {}
     }
 
+    /** 疾患テンプレートに応じたホームメニューを組み立てる */
+    function buildHomeButtons(template, q) {
+      const buttons = [
+        { href: "/simple/record.html" + q, icon: "edit_note", label: "きろくする", desc: "受診や体調をのこす" },
+      ];
+
+      const photoMod = template.modules?.find((m) => m.id === "medication-photo" && m.enabled);
+      if (photoMod) {
+        buttons.push({
+          href: "/" + photoMod.page + q,
+          icon: photoMod.icon || "photo_camera",
+          label: photoMod.label,
+          desc: photoMod.description,
+        });
+      }
+
+      if (template.labConfig?.items?.length) {
+        buttons.push({
+          href: "/lab-tracker.html" + q,
+          icon: "science",
+          label: "検査値きろく",
+          desc: "数値を記録・写真から読み取り",
+        });
+      }
+
+      buttons.push(
+        { href: "/simple/calendar.html" + q, icon: "calendar_month", label: "ふりかえる", desc: "これまでの記録を見る" },
+        { href: "/simple/show.html" + q, icon: "co_present", label: "みせる", desc: "医師にパッと見せる" },
+      );
+
+      return buttons;
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       // 初回セットアップ未完了ならセットアップへ
       if (!localStorage.getItem("yorisoi_setup_done") && !new URLSearchParams(location.search).get("disease")) {
@@ -242,12 +275,7 @@
         document.getElementById("header-sub").textContent = sub;
 
         const q = "?disease=" + encodeURIComponent(diseaseId);
-        const buttons = [
-          { href: "/simple/record.html" + q,   icon: "edit_note",       label: "きろくする",   desc: "受診や体調をのこす" },
-          { href: "/simple/calendar.html" + q, icon: "calendar_month",  label: "ふりかえる",   desc: "これまでの記録を見る" },
-          { href: "/simple/show.html" + q,     icon: "co_present",      label: "みせる",       desc: "医師にパッと見せる" },
-          { href: "/talk/",                    icon: "chat",            label: "はなす",       desc: "気持ちを聞いてもらう（β）" },
-        ];
+        const buttons = buildHomeButtons(template, q);
         const html = buttons.map(b => `
           <a class="big-button" href="${b.href}">
             <div class="icon-circle">
