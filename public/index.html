@@ -181,6 +181,40 @@
     .barometer-sub { font-size: 12px; color: var(--gray-500); margin-top: 6px; line-height: 1.5; }
     .barometer-trend.down { color: #7c3aed; font-weight: 600; }
     .barometer-trend.up { color: #0284c7; font-weight: 600; }
+    /* 痛みボタン */
+    .pain-hint { font-size: 11px; color: var(--gray-500); margin: -4px 0 10px; }
+    .pain-buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    .pain-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; padding: 10px 4px;
+      border: 2.5px solid var(--gray-200); border-radius: 14px;
+      background: var(--gray-50); cursor: pointer;
+      transition: all 0.15s; min-height: 72px;
+    }
+    .pain-btn:active { transform: scale(0.95); }
+    .pain-btn.selected {
+      border-color: var(--pain-color, #94a3b8);
+      background: color-mix(in srgb, var(--pain-color, #94a3b8) 12%, white);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--pain-color, #94a3b8) 25%, transparent);
+    }
+    .pain-num {
+      font-size: 26px; font-weight: 800; line-height: 1;
+      color: var(--pain-color, #94a3b8);
+    }
+    .pain-btn.selected .pain-num { color: var(--pain-color, #94a3b8); }
+    .pain-label { font-size: 9.5px; font-weight: 700; color: var(--gray-600); text-align: center; line-height: 1.2; }
+    .pain-status {
+      margin-top: 10px; font-size: 12px; font-weight: 600;
+      padding: 8px 10px; border-radius: 10px; text-align: center;
+    }
+    .pain-status.hidden { display: none; }
+    .pain-status.success { background: #fef3c7; color: #92400e; }
+    .pain-status.error { background: #fee2e2; color: #991b1b; }
+
     .mood-hint { font-size: 11px; color: var(--gray-500); margin: -4px 0 10px; }
     .mood-buttons {
       display: grid;

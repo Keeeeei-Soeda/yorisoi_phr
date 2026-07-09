@@ -80,9 +80,11 @@ async function fetchBarometerData(lat, lon) {
   return { current, trendLabel, trendClass, locationLabel: null };
 }
 
+const PAIN_COLORS = ["", "#60a5fa", "#34d399", "#fbbf24", "#fb923c", "#f87171"];
+
 function renderHomeWidgets(container, template) {
   const config = template.homeConfig;
-  if (!config?.barometer && !config?.moodButtons?.length) return;
+  if (!config?.barometer && !config?.painButtons?.length && !config?.moodButtons?.length) return;
 
   let html = '<div class="home-widgets-inner">';
 
@@ -95,6 +97,28 @@ function renderHomeWidgets(container, template) {
         </div>
         <div class="barometer-value" id="barometer-value">読み込み中...</div>
         <div class="barometer-sub" id="barometer-sub"></div>
+      </div>`;
+  }
+
+  if (config.painButtons?.length) {
+    html += `
+      <div class="home-widget-card pain-card">
+        <div class="home-widget-title">
+          <span class="material-symbols-outlined">sentiment_very_dissatisfied</span>
+          今日の痛みは？
+        </div>
+        <p class="pain-hint">1タップで記録できます</p>
+        <div class="pain-buttons" id="pain-buttons">
+          ${config.painButtons.map((b) => `
+            <button type="button" class="pain-btn" data-pain-value="${b.value}"
+              data-pain-label="${escapeHtml(b.label)}"
+              style="--pain-color:${PAIN_COLORS[b.value] || "#94a3b8"}">
+              <span class="pain-num">${b.value}</span>
+              <span class="pain-label">${escapeHtml(b.label)}</span>
+            </button>
+          `).join("")}
+        </div>
+        <div class="pain-status hidden" id="pain-status"></div>
       </div>`;
   }
 
@@ -193,6 +217,56 @@ async function saveQuickMood(moodId, moodLabel, moodScore) {
   showMoodStatus(`「${moodLabel}」を記録しました`, false);
 }
 
+function highlightPainButton(value) {
+  document.querySelectorAll(".pain-btn").forEach((btn) => {
+    btn.classList.toggle("selected", Number(btn.dataset.painValue) === Number(value));
+  });
+}
+
+function showPainStatus(message, isError) {
+  const el = document.getElementById("pain-status");
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove("hidden", "error", "success");
+  el.classList.add(isError ? "error" : "success");
+}
+
+async function saveQuickPain(value, label) {
+  const today = new Date().toISOString().slice(0, 10);
+  let existing = {};
+  try { existing = (await apiGet("/api/symptoms/today")) || {}; } catch (_) {}
+  await apiPost("/api/symptoms", { ...existing, date: today, overallPain: value, overallPainLabel: label });
+  highlightPainButton(value);
+  showPainStatus(`痛み「${label}（${value}）」を記録しました`, false);
+}
+
+function setupPainButtons() {
+  const container = document.getElementById("pain-buttons");
+  if (!container) return;
+
+  container.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".pain-btn");
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    showPainStatus("保存中...", false);
+    try {
+      await saveQuickPain(Number(btn.dataset.painValue), btn.dataset.painLabel);
+    } catch (err) {
+      console.error(err);
+      showPainStatus("保存に失敗しました", true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  apiGet("/api/symptoms/today").then((log) => {
+    if (log?.overallPain) {
+      highlightPainButton(log.overallPain);
+      showPainStatus(`今日の痛みは「${log.overallPainLabel || log.overallPain}」で記録済み`, false);
+    }
+  }).catch(() => {});
+}
+
 function setupMoodButtons() {
   const container = document.getElementById("mood-buttons");
   if (!container) return;
@@ -234,6 +308,9 @@ async function initHomeWidgets(container, template) {
 
   if (template.homeConfig.barometer) {
     initBarometerWidget();
+  }
+  if (template.homeConfig.painButtons?.length) {
+    setupPainButtons();
   }
   if (template.homeConfig.moodButtons?.length) {
     setupMoodButtons();

@@ -74,6 +74,13 @@
 
   "homeConfig": {
     "barometer": true,
+    "painButtons": [
+      { "value": 1, "label": "なし" },
+      { "value": 2, "label": "少し" },
+      { "value": 3, "label": "中程度" },
+      { "value": 4, "label": "強い" },
+      { "value": 5, "label": "とても強い" }
+    ],
     "moodButtons": [
       { "id": "great", "label": "いい感じ", "emoji": "😊", "value": 1 },
       { "id": "ok", "label": "ふつう", "emoji": "😐", "value": 2 },
