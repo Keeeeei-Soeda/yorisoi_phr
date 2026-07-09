@@ -52,3 +52,9 @@ Cloud Run サービス: `yorisoi-phr-fm-test`（`yorisoi-senikintsu-syndo` / `as
 ### 気分データ
 - `mood` / `moodLabel` / `moodScore` を当日の症状ログにマージ保存
 - 詳細な症状記録は従来どおり `symptom-log.html` から可能
+
+## 2026-07-10 別 PC セットアップガイド追加
+
+- **原因整理・手順書:** `docs/fm-deploy-setup-guide.md`
+- **自動チェック:** `./scripts/setup-fm-dev.sh`
+- **CI 修正:** GitHub Actions の YAML heredoc 構文エラーを `--set-env-vars` 方式に変更
