@@ -657,18 +657,40 @@ function generateSymptomLogs(diseaseId) {
   const today = new Date();
   const tmpl = getTemplate(diseaseId);
   const metrics = tmpl?.symptomConfig?.metrics || [];
+  const isFm = diseaseId === "fm";
+  const totalDays = isFm ? 92 : 30;
 
-  for (let i = 0; i < 30; i++) {
+  // FM向け: 気圧を徐々に変動させてリアルな相関データを生成
+  let basePressure = 1012;
+
+  for (let i = totalDays - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    if (Math.random() > 0.25) {
+    if (Math.random() > 0.22) {
       const dateStr = d.toISOString().slice(0, 10);
       const log = { id: dateStr, date: dateStr };
+
       metrics.forEach((m) => {
         if (m.type === "counter") log[m.id] = Math.floor(Math.random() * (m.max > 10 ? 5 : m.max)) + (m.min || 0);
         else if (m.type === "scale") log[m.id] = Math.floor(Math.random() * (m.max - m.min + 1)) + m.min;
         else if (m.type === "toggle") log[m.id] = Math.random() < 0.12;
       });
+
+      if (isFm) {
+        // 気圧: 990〜1022 hPaを緩やかに変動（低気圧の波を再現）
+        basePressure += (Math.random() - 0.48) * 5;
+        basePressure = Math.max(992, Math.min(1022, basePressure));
+        log.pressureHpa = Math.round(basePressure * 10) / 10;
+
+        // 全体の痛み: 低気圧ほど痛みが増す（弱い相関）
+        const pressureEffect = (1010 - basePressure) / 8;
+        const rawPain = 2.8 + pressureEffect + (Math.random() * 2 - 1);
+        log.overallPain = Math.max(1, Math.min(5, Math.round(rawPain)));
+
+        // 気分: 痛みと逆相関
+        log.mood = Math.max(1, Math.min(5, Math.round(6 - log.overallPain + (Math.random() * 1.5 - 0.75))));
+      }
+
       logs.push(log);
     }
   }

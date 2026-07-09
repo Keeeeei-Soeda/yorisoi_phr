@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>痛みグラフ - よりそい PHR</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ======== レイアウト ======== */
+    .pg-page { max-width: 560px; margin: 0 auto; padding-bottom: 32px; }
+
+    /* ======== 期間切替 ======== */
+    .period-tabs {
+      display: flex; gap: 0;
+      border-radius: 12px; overflow: hidden;
+      border: 2px solid var(--brand-200);
+      margin: 0 16px 16px;
+    }
+    .period-tab {
+      flex: 1; padding: 10px 0; text-align: center;
+      font-size: 13px; font-weight: 700;
+      background: var(--white); color: var(--brand-500);
+      border: none; cursor: pointer; transition: all 0.15s;
+    }
+    .period-tab.active { background: var(--brand-600); color: #fff; }
+
+    /* ======== サマリーカード ======== */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; margin: 0 16px 16px;
+    }
+    .stat-card {
+      background: var(--white); border-radius: 14px;
+      padding: 12px 8px; text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .stat-val {
+      font-size: 22px; font-weight: 800;
+      line-height: 1; margin-bottom: 4px;
+    }
+    .stat-val.pain { color: #ef4444; }
+    .stat-val.pressure { color: #3b82f6; }
+    .stat-val.count { color: var(--brand-600); }
+    .stat-lbl { font-size: 10px; color: var(--gray-500); font-weight: 600; letter-spacing: 0.3px; }
+
+    /* ======== グラフエリア ======== */
+    .chart-wrap {
+      background: var(--white); border-radius: 16px;
+      margin: 0 16px 16px;
+      padding: 16px 8px 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .chart-title {
+      font-size: 12px; font-weight: 700; color: var(--gray-600);
+      margin: 0 8px 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chart-canvas-wrap {
+      position: relative; height: 220px;
+    }
+    .chart-legend {
+      display: flex; gap: 16px; justify-content: center;
+      margin-top: 10px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--gray-600); font-weight: 600;
+    }
+    .legend-swatch { width: 20px; height: 3px; border-radius: 2px; }
+    .legend-swatch.pain { background: #ef4444; }
+    .legend-swatch.pressure { background: #93c5fd; }
+
+    /* ======== 軸説明 ======== */
+    .axis-note {
+      display: flex; justify-content: space-between;
+      margin: 0 16px 16px;
+      font-size: 10px; color: var(--gray-400); font-weight: 600;
+    }
+
+    /* ======== ローディング / エラー ======== */
+    .chart-loading {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 220px; gap: 12px;
+      color: var(--gray-400); font-size: 13px;
+    }
+    .chart-loading .loading-spinner { width: 28px; height: 28px; }
+    .chart-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 180px; gap: 8px;
+      color: var(--gray-400); font-size: 13px; text-align: center;
+      padding: 16px;
+    }
+    .chart-empty .material-symbols-outlined { font-size: 36px; }
+
+    /* ======== 相関ヒント ======== */
+    .correlation-card {
+      margin: 0 16px 16px;
+      background: #eff6ff; border-radius: 14px;
+      padding: 12px 16px;
+      border: 1px solid #bfdbfe;
+    }
+    .correlation-title {
+      font-size: 12px; font-weight: 700; color: #1d4ed8;
+      margin-bottom: 6px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .correlation-title .material-symbols-outlined { font-size: 16px; }
+    .correlation-text { font-size: 12px; color: #1e40af; line-height: 1.6; }
+
+    /* ======== 固定テンプレ注記 ======== */
+    .template-note {
+      margin: 0 16px 8px;
+      font-size: 10.5px; color: var(--gray-400);
+      text-align: center; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="header" id="page-header">
+    <button class="header-back" onclick="history.back()">←</button>
+    <h1>痛みグラフ</h1>
+  </div>
+
+  <div class="content pg-page">
+
+    <!-- 期間切替 -->
+    <div class="period-tabs">
+      <button class="period-tab active" data-days="30">1ヶ月</button>
+      <button class="period-tab" data-days="90">3ヶ月</button>
+    </div>
+
+    <!-- サマリーカード -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card">
+        <div class="stat-val pain" id="stat-avg-pain">—</div>
+        <div class="stat-lbl">平均痛み</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val pressure" id="stat-min-pressure">—</div>
+        <div class="stat-lbl">最低気圧 hPa</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val count" id="stat-days">—</div>
+        <div class="stat-lbl">記録日数</div>
+      </div>
+    </div>
+
+    <!-- メイングラフ -->
+    <div class="chart-wrap">
+      <div class="chart-title">
+        <span class="material-symbols-outlined" style="font-size:16px;color:#ef4444;">show_chart</span>
+        全体の痛み推移（気圧重ね）
+      </div>
+      <div class="chart-canvas-wrap" id="chart-wrap">
+        <div class="chart-loading" id="chart-loading">
+          <div class="loading-spinner"></div>
+          <span>読み込み中...</span>
+        </div>
+        <canvas id="pain-chart" style="display:none;"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item">
+          <span class="legend-swatch pain"></span>全体の痛み（左軸 1-5）
+        </div>
+        <div class="legend-item">
+          <span class="legend-swatch pressure"></span>気圧 hPa（右軸）
+        </div>
+      </div>
+    </div>
+
+    <div class="axis-note">
+      <span>← 痛みの強さ（1:なし〜5:とても強い）</span>
+      <span>気圧 hPa →</span>
+    </div>
+
+    <!-- 気圧×痛みヒント -->
+    <div class="correlation-card" id="correlation-card" style="display:none;">
+      <div class="correlation-title">
+        <span class="material-symbols-outlined">air</span>
+        気圧と痛みの関係
+      </div>
+      <div class="correlation-text" id="correlation-text"></div>
+    </div>
+
+    <!-- 固定テンプレ注記 -->
+    <p class="template-note">
+      このグラフは交流会で持ち寄って比較できるよう、<br>
+      縦軸・期間の体裁を全員で統一しています。
+    </p>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="/js/liff-init.js"></script>
+  <script>
+    let chartInstance = null;
+    let currentDays = 30;
+
+    // ======== 期間切替 ========
+    document.querySelectorAll(".period-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".period-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentDays = Number(tab.dataset.days);
+        loadAndRender();
+      });
+    });
+
+    // ======== データ取得 ========
+    async function fetchLogs(days) {
+      const logs = await apiGet(`/api/symptoms?days=${days}`);
+      return (logs || []).filter(l => l.overallPain != null);
+    }
+
+    // ======== 統計計算 ========
+    function calcStats(logs) {
+      if (!logs.length) return { avgPain: null, minPressure: null, count: 0 };
+      const painLogs = logs.filter(l => l.overallPain != null);
+      const pressureLogs = logs.filter(l => l.pressureHpa != null);
+      const avgPain = painLogs.length
+        ? painLogs.reduce((s, l) => s + l.overallPain, 0) / painLogs.length
+        : null;
+      const minPressure = pressureLogs.length
+        ? Math.min(...pressureLogs.map(l => l.pressureHpa))
+        : null;
+      return { avgPain, minPressure, count: painLogs.length };
+    }
+
+    // ======== 気圧×痛み相関テキスト ========
+    function buildCorrelationText(logs) {
+      const paired = logs.filter(l => l.overallPain != null && l.pressureHpa != null);
+      if (paired.length < 5) return null;
+
+      const n = paired.length;
+      const avgP = paired.reduce((s, l) => s + l.pressureHpa, 0) / n;
+      const avgPain = paired.reduce((s, l) => s + l.overallPain, 0) / n;
+      let num = 0, denP = 0, denPain = 0;
+      paired.forEach(l => {
+        const dp = l.pressureHpa - avgP;
+        const dpain = l.overallPain - avgPain;
+        num += dp * dpain;
+        denP += dp * dp;
+        denPain += dpain * dpain;
+      });
+      if (denP === 0 || denPain === 0) return null;
+      const r = num / Math.sqrt(denP * denPain);
+
+      let text = "";
+      if (r < -0.3) {
+        text = `この期間、気圧が低い日ほど痛みが強い傾向があります（相関 r=${r.toFixed(2)}）。低気圧の前日から早めに準備できると良いかもしれません。`;
+      } else if (r > 0.3) {
+        text = `この期間、気圧と痛みに正の相関が見られます（r=${r.toFixed(2)}）。他の要因も合わせて記録を続けてみましょう。`;
+      } else {
+        text = `この期間は気圧と痛みに明確な相関は見られませんでした（r=${r.toFixed(2)}）。記録を続けると傾向が見えてきます。`;
+      }
+      return text;
+    }
+
+    // ======== グラフ描画 ========
+    function renderChart(logs) {
+      const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date));
+
+      const labels = sorted.map(l => {
+        const d = new Date(l.date + "T00:00:00");
+        return `${d.getMonth() + 1}/${d.getDate()}`;
+      });
+      const painData = sorted.map(l => l.overallPain ?? null);
+      const pressureData = sorted.map(l => l.pressureHpa ?? null);
+
+      const canvas = document.getElementById("pain-chart");
+      const loading = document.getElementById("chart-loading");
+      loading.style.display = "none";
+      canvas.style.display = "block";
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(canvas.getContext("2d"), {
+        data: {
+          labels,
+          datasets: [
+            {
+              type: "line",
+              label: "全体の痛み",
+              data: painData,
+              yAxisID: "pain",
+              borderColor: "#ef4444",
+              backgroundColor: "rgba(239,68,68,0.08)",
+              fill: true,
+              tension: 0.35,
+              pointRadius: painData.length > 45 ? 3 : 5,
+              pointHoverRadius: 7,
+              pointBackgroundColor: "#ef4444",
+              borderWidth: 2.5,
+              spanGaps: false,
+              order: 1,
+            },
+            {
+              type: "line",
+              label: "気圧 hPa",
+              data: pressureData,
+              yAxisID: "pressure",
+              borderColor: "#93c5fd",
+              backgroundColor: "rgba(147,197,253,0.12)",
+              fill: true,
+              tension: 0.5,
+              pointRadius: 0,
+              borderWidth: 1.5,
+              borderDash: [5, 3],
+              spanGaps: true,
+              order: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  if (ctx.dataset.yAxisID === "pain") return ` 痛み: ${ctx.parsed.y ?? "—"}`;
+                  if (ctx.dataset.yAxisID === "pressure") return ` 気圧: ${ctx.parsed.y != null ? ctx.parsed.y + " hPa" : "—"}`;
+                  return ctx.formattedValue;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { color: "rgba(0,0,0,0.04)" },
+              ticks: {
+                font: { size: 10 },
+                color: "#94a3b8",
+                maxTicksLimit: currentDays <= 30 ? 10 : 12,
+                maxRotation: 0,
+              },
+            },
+            pain: {
+              type: "linear",
+              position: "left",
+              min: 0.5,
+              max: 5.5,
+              ticks: {
+                stepSize: 1,
+                font: { size: 11, weight: "700" },
+                color: "#ef4444",
+                callback: (v) => v >= 1 && v <= 5 ? v : "",
+              },
+              grid: { color: "rgba(239,68,68,0.08)" },
+            },
+            pressure: {
+              type: "linear",
+              position: "right",
+              min: 975,
+              max: 1035,
+              ticks: {
+                font: { size: 10 },
+                color: "#93c5fd",
+                stepSize: 10,
+                callback: (v) => v,
+              },
+              grid: { display: false },
+            },
+          },
+        },
+      });
+    }
+
+    // ======== 空グラフ表示 ========
+    function showEmpty() {
+      const loading = document.getElementById("chart-loading");
+      loading.innerHTML = `
+        <div class="chart-empty">
+          <span class="material-symbols-outlined">bar_chart</span>
+          <p>まだ記録がありません。<br>ホームで「今日の痛みは？」を<br>記録してみましょう。</p>
+        </div>`;
+    }
+
+    // ======== メイン ========
+    async function loadAndRender() {
+      const canvas = document.getElementById("pain-chart");
+      const loading = document.getElementById("chart-loading");
+      canvas.style.display = "none";
+      loading.style.display = "flex";
+      loading.innerHTML = '<div class="loading-spinner"></div><span>読み込み中...</span>';
+
+      try {
+        const logs = await fetchLogs(currentDays);
+
+        if (!logs.length) { showEmpty(); return; }
+
+        // サマリー
+        const stats = calcStats(logs);
+        document.getElementById("stat-avg-pain").textContent =
+          stats.avgPain != null ? stats.avgPain.toFixed(1) : "—";
+        document.getElementById("stat-min-pressure").textContent =
+          stats.minPressure != null ? stats.minPressure.toFixed(0) : "—";
+        document.getElementById("stat-days").textContent = stats.count;
+
+        // 相関ヒント
+        const corrText = buildCorrelationText(logs);
+        const corrCard = document.getElementById("correlation-card");
+        if (corrText) {
+          document.getElementById("correlation-text").textContent = corrText;
+          corrCard.style.display = "block";
+        } else {
+          corrCard.style.display = "none";
+        }
+
+        renderChart(logs);
+      } catch (err) {
+        console.error(err);
+        loading.innerHTML = `<div class="chart-empty">
+          <span class="material-symbols-outlined">error</span>
+          <p>データの読み込みに失敗しました</p>
+        </div>`;
+      }
+    }
+
+    // ======== 初期化 ========
+    document.addEventListener("DOMContentLoaded", async () => {
+      await initLiff();
+      await loadAndRender();
+    });
+  </script>
+</body>
+</html>

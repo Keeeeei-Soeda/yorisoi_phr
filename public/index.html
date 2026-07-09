@@ -354,6 +354,15 @@
         });
       }
 
+      if (template.homeConfig?.painButtons?.length) {
+        buttons.push({
+          href: "/pain-graph.html" + q,
+          icon: "show_chart",
+          label: "グラフをみる",
+          desc: "痛み推移と気圧の重ねグラフ",
+        });
+      }
+
       buttons.push(
         { href: "/simple/calendar.html" + q, icon: "calendar_month", label: "ふりかえる", desc: "これまでの記録を見る" },
         { href: "/simple/show.html" + q, icon: "co_present", label: "みせる", desc: "医師にパッと見せる" },
