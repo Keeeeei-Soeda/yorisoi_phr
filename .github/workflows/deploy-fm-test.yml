@@ -38,11 +38,10 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Deploy to Cloud Run
+      - name: Validate secrets
         env:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          ALLOW_ORIGIN: ${{ secrets.ALLOW_ORIGIN }}
         run: |
           if [ -z "$GCP_PROJECT_ID" ]; then
             echo "::error::GCP_PROJECT_ID secret is not set"
@@ -53,21 +52,42 @@ jobs:
             exit 1
           fi
 
-          ORIGIN="${ALLOW_ORIGIN:-*}"
+      - name: Enable required APIs
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
           gcloud config set project "$GCP_PROJECT_ID"
-
-          gcloud run deploy "$SERVICE_NAME" \
-            --source . \
-            --region "$REGION" \
-            --platform managed \
-            --allow-unauthenticated \
-            --memory 512Mi \
-            --set-env-vars "GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID},GEMINI_API_KEY=${GEMINI_API_KEY},GEMINI_MODEL_PRIMARY=gemini-3.1-flash-lite,GEMINI_MODEL_FALLBACK=gemini-3-flash,ALLOW_ORIGIN=${ORIGIN},DEMO_MODE=1" \
+          gcloud services enable \
+            run.googleapis.com \
+            cloudbuild.googleapis.com \
+            artifactregistry.googleapis.com \
             --quiet
 
-          URL=$(gcloud run services describe "$SERVICE_NAME" \
-            --region "$REGION" \
-            --format 'value(status.url)')
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          source: .
+          flags: --allow-unauthenticated --memory=512Mi
+          env_vars: |
+            GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            GEMINI_MODEL_PRIMARY=gemini-3.1-flash-lite
+            GEMINI_MODEL_FALLBACK=gemini-3-flash
+            ALLOW_ORIGIN=${{ secrets.ALLOW_ORIGIN }}
+            DEMO_MODE=1
+
+      - name: Summary
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          ORIGIN="${{ secrets.ALLOW_ORIGIN }}"
+          if [ -z "$ORIGIN" ]; then
+            echo "Note: ALLOW_ORIGIN secret is empty; set it in GitHub Secrets if CORS errors occur."
+          fi
           echo "## FM Test Deployed" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**URL:** ${URL}?disease=fm" >> "$GITHUB_STEP_SUMMARY"
