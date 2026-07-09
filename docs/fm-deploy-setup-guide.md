@@ -132,12 +132,25 @@ gcloud projects list
 
 ```bash
 cp .env.example .env
-# エディタで .env を編集:
+
+# 方法A: Cloud Run から同期（推奨・gcloud ログイン後）
+source scripts/env-bootstrap.sh
+gcloud auth login k.soeda.mediforce@gmail.com
+gcloud config set project yorisoi-senikintsu-syndo
+./scripts/sync-env-from-cloudrun.sh
+
+# 方法B: 手動で .env を編集
 #   GEMINI_API_KEY=（Google AI Studio で取得）
 #   GOOGLE_CLOUD_PROJECT=yorisoi-senikintsu-syndo
 ```
 
 `.env` は **絶対に git commit しない**（`.gitignore` 済み）。
+
+### 3.5.1 ツール PATH（Cursor / 非 Homebrew 環境）
+
+```bash
+source scripts/env-bootstrap.sh   # gcloud + Node の PATH を設定
+```
 
 ### 3.6 セットアップ確認（自動チェック）
 
@@ -216,6 +229,8 @@ Repository → **Settings → Secrets and variables → Actions** に以下を�
 | ファイル | 用途 |
 |----------|------|
 | `scripts/setup-fm-dev.sh` | 別 PC セットアップ自動チェック |
+| `scripts/env-bootstrap.sh` | gcloud / Node の PATH 設定 |
+| `scripts/sync-env-from-cloudrun.sh` | Cloud Run から GEMINI_API_KEY を .env に同期 |
 | `scripts/deploy-fm-test.sh` | Cloud Run デプロイ |
 | `.env.example` | 環境変数テンプレート |
 | `.github/workflows/deploy-fm-test.yml` | GitHub Actions デプロイ |

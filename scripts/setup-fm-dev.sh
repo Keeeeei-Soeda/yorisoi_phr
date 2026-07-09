@@ -9,6 +9,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck disable=SC1091
+source "${ROOT}/scripts/env-bootstrap.sh" 2>/dev/null || true
 EXPECTED_PROJECT="yorisoi-senikintsu-syndo"
 EXPECTED_ACCOUNT_HINT="k.soeda.mediforce@gmail.com"
 LIVE_URL="https://yorisoi-phr-fm-test-o7flbqc5ka-an.a.run.app"
@@ -92,7 +94,8 @@ if [[ -f "$ENV_FILE" ]]; then
   if [[ -n "${GEMINI_API_KEY:-}" && "${GEMINI_API_KEY}" != "your-gemini-api-key" ]]; then
     ok "GEMINI_API_KEY が設定されています"
   else
-    ng "GEMINI_API_KEY が未設定 → .env を編集（cp .env.example .env）"
+    ng "GEMINI_API_KEY が未設定 → .env を編集、または gcloud ログイン後:"
+    echo "     ./scripts/sync-env-from-cloudrun.sh"
     errors=$((errors + 1))
   fi
 else
