@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>部位別きろく - よりそい PHR</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ======== 全体レイアウト ======== */
+    .bp-page { max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
+
+    /* ======== ビュー切替タブ ======== */
+    .view-tabs {
+      display: flex; gap: 0; margin: 0 16px 0;
+      border-radius: 14px; overflow: hidden;
+      border: 2px solid var(--brand-200);
+    }
+    .view-tab {
+      flex: 1; padding: 11px 0; text-align: center;
+      font-size: 14px; font-weight: 700;
+      background: var(--white); color: var(--brand-500);
+      border: none; cursor: pointer; transition: all 0.15s;
+      letter-spacing: 0.5px;
+    }
+    .view-tab.active { background: var(--brand-600); color: #fff; }
+
+    /* ======== 凡例 ======== */
+    .intensity-legend {
+      display: flex; justify-content: center; gap: 18px;
+      margin: 8px 16px 4px;
+      padding: 8px 12px; background: var(--gray-50);
+      border-radius: 12px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: var(--gray-700);
+    }
+    .legend-dot {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid;
+      display: inline-block;
+    }
+    .legend-dot.i1 { background: #fde8e8; border-color: #fca5a5; }
+    .legend-dot.i2 { background: #fca5a5; border-color: #f87171; }
+    .legend-dot.i3 { background: #ef4444; border-color: #b91c1c; }
+    .legend-hint { font-size: 11px; color: var(--gray-500); text-align: center; margin: 0 16px 4px; }
+
+    /* ======== SVG ボディ ======== */
+    .body-wrap {
+      display: flex; justify-content: center;
+      padding: 8px 0 4px;
+    }
+    .body-svg-container {
+      width: 100%; max-width: 260px;
+      touch-action: none; user-select: none;
+    }
+    .body-svg-container svg {
+      width: 100%; height: auto; display: block;
+    }
+
+    /* ======== 各部位の塗り（intensity属性で切替） ======== */
+    .bp { cursor: pointer; transition: fill 0.12s, stroke 0.12s; }
+    .bp[data-intensity="0"] { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.5; }
+    .bp[data-intensity="1"] { fill: #fde8e8; stroke: #fca5a5; stroke-width: 2; }
+    .bp[data-intensity="2"] { fill: #fca5a5; stroke: #f87171; stroke-width: 2; }
+    .bp[data-intensity="3"] { fill: #ef4444; stroke: #b91c1c; stroke-width: 2; }
+    .bp:active { opacity: 0.7; }
+
+    /* ======== 選択部位リスト ======== */
+    .selected-section { margin: 4px 16px 8px; }
+    .selected-title {
+      font-size: 13px; font-weight: 700; color: var(--gray-700);
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .selected-title .material-symbols-outlined { font-size: 18px; color: #ef4444; }
+    .selected-list {
+      display: flex; flex-direction: column; gap: 6px;
+      min-height: 32px;
+    }
+    .selected-empty {
+      font-size: 13px; color: var(--gray-400); padding: 6px 0;
+      text-align: center;
+    }
+    .selected-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--white); border-radius: 10px;
+      padding: 9px 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+    .selected-region-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--gray-800); }
+    .intensity-dots { display: flex; gap: 3px; }
+    .intensity-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 1.5px solid #d1d5db; background: #f1f5f9;
+    }
+    .intensity-dot.filled { border-color: #f87171; background: #f87171; }
+    .intensity-dot.filled.strong { border-color: #b91c1c; background: #ef4444; }
+    .remove-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--gray-400); font-size: 18px; padding: 2px 4px;
+      line-height: 1;
+    }
+    .remove-btn:active { color: #ef4444; }
+
+    /* ======== 保存ボタン ======== */
+    .save-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid var(--gray-200);
+      padding: 12px 20px env(safe-area-inset-bottom, 12px);
+      display: flex; gap: 10px; align-items: center;
+      max-width: 480px; margin: 0 auto;
+      left: 50%; transform: translateX(-50%); width: 100%;
+    }
+    .save-btn {
+      flex: 1; padding: 15px;
+      background: var(--brand-600); color: #fff;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.5px;
+      transition: background 0.15s;
+    }
+    .save-btn:active { background: var(--brand-700); }
+    .save-btn:disabled { background: var(--gray-300); cursor: default; }
+    .save-status {
+      font-size: 12px; color: var(--gray-500); text-align: center;
+      margin-top: 4px; min-height: 16px;
+    }
+    .save-status.ok { color: #059669; }
+    .save-status.err { color: #dc2626; }
+
+    /* ======== ビュー切り替え ======== */
+    .body-view { display: none; }
+    .body-view.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="header" id="page-header">
+    <button class="header-back" onclick="history.back()">←</button>
+    <h1>部位別きろく</h1>
+  </div>
+
+  <div class="content bp-page">
+
+    <!-- 前面／背面タブ -->
+    <div class="view-tabs" style="margin-bottom:10px;">
+      <button class="view-tab active" data-view="front">前面</button>
+      <button class="view-tab" data-view="back">背面</button>
+    </div>
+
+    <!-- 凡例 -->
+    <div class="intensity-legend">
+      <div class="legend-item"><span class="legend-dot i1"></span>1 軽い</div>
+      <div class="legend-item"><span class="legend-dot i2"></span>2 中程度</div>
+      <div class="legend-item"><span class="legend-dot i3"></span>3 強い</div>
+    </div>
+    <p class="legend-hint">部位をタップ → 1→2→3→消去のサイクル</p>
+
+    <!-- 人体 SVG -->
+    <div class="body-wrap">
+      <div class="body-svg-container">
+
+        <!-- ======== 前面 ======== -->
+        <svg id="view-front" class="body-view active" viewBox="0 0 220 320" xmlns="http://www.w3.org/2000/svg">
+          <!-- 頭 -->
+          <ellipse class="bp" data-region="head" data-side="center" data-label="頭"
+            cx="110" cy="30" rx="24" ry="26">
+            <title>頭</title>
+          </ellipse>
+          <!-- 顔（頭の中に重なる） -->
+          <ellipse class="bp" data-region="face" data-side="center" data-label="顔"
+            cx="110" cy="43" rx="15" ry="13">
+            <title>顔</title>
+          </ellipse>
+          <!-- 首 -->
+          <ellipse class="bp" data-region="neck" data-side="center" data-label="首"
+            cx="110" cy="63" rx="11" ry="9">
+            <title>首</title>
+          </ellipse>
+          <!-- 左肩 -->
+          <ellipse class="bp" data-region="shoulder" data-side="left" data-label="左肩"
+            cx="71" cy="83" rx="22" ry="12">
+            <title>左肩</title>
+          </ellipse>
+          <!-- 右肩 -->
+          <ellipse class="bp" data-region="shoulder" data-side="right" data-label="右肩"
+            cx="149" cy="83" rx="22" ry="12">
+            <title>右肩</title>
+          </ellipse>
+          <!-- 胸（中央） -->
+          <rect class="bp" data-region="chest" data-side="center" data-label="胸"
+            x="85" y="70" width="50" height="42" rx="5">
+            <title>胸</title>
+          </rect>
+          <!-- 腹（中央） -->
+          <rect class="bp" data-region="abdomen" data-side="center" data-label="腹"
+            x="87" y="110" width="46" height="48" rx="5">
+            <title>腹</title>
+          </rect>
+          <!-- 左上腕 -->
+          <ellipse class="bp" data-region="upperArm" data-side="left" data-label="左上腕"
+            cx="45" cy="108" rx="13" ry="28">
+            <title>左上腕</title>
+          </ellipse>
+          <!-- 右上腕 -->
+          <ellipse class="bp" data-region="upperArm" data-side="right" data-label="右上腕"
+            cx="175" cy="108" rx="13" ry="28">
+            <title>右上腕</title>
+          </ellipse>
+          <!-- 左肘 -->
+          <ellipse class="bp" data-region="elbow" data-side="left" data-label="左肘"
+            cx="42" cy="139" rx="13" ry="10">
+            <title>左肘</title>
+          </ellipse>
+          <!-- 右肘 -->
+          <ellipse class="bp" data-region="elbow" data-side="right" data-label="右肘"
+            cx="178" cy="139" rx="13" ry="10">
+            <title>右肘</title>
+          </ellipse>
+          <!-- 左前腕 -->
+          <ellipse class="bp" data-region="forearm" data-side="left" data-label="左前腕"
+            cx="39" cy="163" rx="12" ry="23">
+            <title>左前腕</title>
+          </ellipse>
+          <!-- 右前腕 -->
+          <ellipse class="bp" data-region="forearm" data-side="right" data-label="右前腕"
+            cx="181" cy="163" rx="12" ry="23">
+            <title>右前腕</title>
+          </ellipse>
+          <!-- 左手 -->
+          <ellipse class="bp" data-region="hand" data-side="left" data-label="左手"
+            cx="36" cy="191" rx="14" ry="14">
+            <title>左手</title>
+          </ellipse>
+          <!-- 右手 -->
+          <ellipse class="bp" data-region="hand" data-side="right" data-label="右手"
+            cx="184" cy="191" rx="14" ry="14">
+            <title>右手</title>
+          </ellipse>
+          <!-- 左大腿 -->
+          <ellipse class="bp" data-region="thigh" data-side="left" data-label="左大腿"
+            cx="95" cy="209" rx="21" ry="37">
+            <title>左大腿</title>
+          </ellipse>
+          <!-- 右大腿 -->
+          <ellipse class="bp" data-region="thigh" data-side="right" data-label="右大腿"
+            cx="125" cy="209" rx="21" ry="37">
+            <title>右大腿</title>
+          </ellipse>
+          <!-- 左膝 -->
+          <ellipse class="bp" data-region="knee" data-side="left" data-label="左膝"
+            cx="93" cy="250" rx="15" ry="11">
+            <title>左膝</title>
+          </ellipse>
+          <!-- 右膝 -->
+          <ellipse class="bp" data-region="knee" data-side="right" data-label="右膝"
+            cx="127" cy="250" rx="15" ry="11">
+            <title>右膝</title>
+          </ellipse>
+          <!-- 左下腿 -->
+          <ellipse class="bp" data-region="lowerLeg" data-side="left" data-label="左下腿"
+            cx="91" cy="276" rx="12" ry="24">
+            <title>左下腿</title>
+          </ellipse>
+          <!-- 右下腿 -->
+          <ellipse class="bp" data-region="lowerLeg" data-side="right" data-label="右下腿"
+            cx="129" cy="276" rx="12" ry="24">
+            <title>右下腿</title>
+          </ellipse>
+          <!-- 左足 -->
+          <ellipse class="bp" data-region="foot" data-side="left" data-label="左足"
+            cx="86" cy="308" rx="19" ry="12">
+            <title>左足</title>
+          </ellipse>
+          <!-- 右足 -->
+          <ellipse class="bp" data-region="foot" data-side="right" data-label="右足"
+            cx="134" cy="308" rx="19" ry="12">
+            <title>右足</title>
+          </ellipse>
+        </svg>
+
+        <!-- ======== 背面 ======== -->
+        <svg id="view-back" class="body-view" viewBox="0 0 220 320" xmlns="http://www.w3.org/2000/svg">
+          <!-- 頭（後ろ）-->
+          <ellipse class="bp" data-region="head" data-side="center" data-label="頭"
+            cx="110" cy="30" rx="24" ry="26">
+            <title>頭</title>
+          </ellipse>
+          <!-- 首 -->
+          <ellipse class="bp" data-region="neck" data-side="center" data-label="首"
+            cx="110" cy="63" rx="11" ry="9">
+            <title>首</title>
+          </ellipse>
+          <!-- 左肩（後ろ）-->
+          <ellipse class="bp" data-region="shoulder" data-side="left" data-label="左肩"
+            cx="71" cy="83" rx="22" ry="12">
+            <title>左肩</title>
+          </ellipse>
+          <!-- 右肩（後ろ）-->
+          <ellipse class="bp" data-region="shoulder" data-side="right" data-label="右肩"
+            cx="149" cy="83" rx="22" ry="12">
+            <title>右肩</title>
+          </ellipse>
+          <!-- 背中上部 -->
+          <rect class="bp" data-region="upperBack" data-side="center" data-label="背中上部"
+            x="85" y="70" width="50" height="42" rx="5">
+            <title>背中上部</title>
+          </rect>
+          <!-- 腰（後ろ）-->
+          <rect class="bp" data-region="lowerBack" data-side="center" data-label="腰"
+            x="87" y="110" width="46" height="38" rx="5">
+            <title>腰</title>
+          </rect>
+          <!-- 左上腕（後ろ）-->
+          <ellipse class="bp" data-region="upperArm" data-side="left" data-label="左上腕"
+            cx="45" cy="108" rx="13" ry="28">
+            <title>左上腕</title>
+          </ellipse>
+          <!-- 右上腕（後ろ）-->
+          <ellipse class="bp" data-region="upperArm" data-side="right" data-label="右上腕"
+            cx="175" cy="108" rx="13" ry="28">
+            <title>右上腕</title>
+          </ellipse>
+          <!-- 左肘（後ろ）-->
+          <ellipse class="bp" data-region="elbow" data-side="left" data-label="左肘"
+            cx="42" cy="139" rx="13" ry="10">
+            <title>左肘</title>
+          </ellipse>
+          <!-- 右肘（後ろ）-->
+          <ellipse class="bp" data-region="elbow" data-side="right" data-label="右肘"
+            cx="178" cy="139" rx="13" ry="10">
+            <title>右肘</title>
+          </ellipse>
+          <!-- 左前腕（後ろ）-->
+          <ellipse class="bp" data-region="forearm" data-side="left" data-label="左前腕"
+            cx="39" cy="163" rx="12" ry="23">
+            <title>左前腕</title>
+          </ellipse>
+          <!-- 右前腕（後ろ）-->
+          <ellipse class="bp" data-region="forearm" data-side="right" data-label="右前腕"
+            cx="181" cy="163" rx="12" ry="23">
+            <title>右前腕</title>
+          </ellipse>
+          <!-- 左手（後ろ）-->
+          <ellipse class="bp" data-region="hand" data-side="left" data-label="左手"
+            cx="36" cy="191" rx="14" ry="14">
+            <title>左手</title>
+          </ellipse>
+          <!-- 右手（後ろ）-->
+          <ellipse class="bp" data-region="hand" data-side="right" data-label="右手"
+            cx="184" cy="191" rx="14" ry="14">
+            <title>右手</title>
+          </ellipse>
+          <!-- 左臀部 -->
+          <ellipse class="bp" data-region="buttock" data-side="left" data-label="左臀部"
+            cx="96" cy="158" rx="23" ry="20">
+            <title>左臀部</title>
+          </ellipse>
+          <!-- 右臀部 -->
+          <ellipse class="bp" data-region="buttock" data-side="right" data-label="右臀部"
+            cx="124" cy="158" rx="23" ry="20">
+            <title>右臀部</title>
+          </ellipse>
+          <!-- 左大腿（後ろ）-->
+          <ellipse class="bp" data-region="thigh" data-side="left" data-label="左大腿"
+            cx="95" cy="209" rx="21" ry="37">
+            <title>左大腿</title>
+          </ellipse>
+          <!-- 右大腿（後ろ）-->
+          <ellipse class="bp" data-region="thigh" data-side="right" data-label="右大腿"
+            cx="125" cy="209" rx="21" ry="37">
+            <title>右大腿</title>
+          </ellipse>
+          <!-- 左膝（後ろ）-->
+          <ellipse class="bp" data-region="knee" data-side="left" data-label="左膝"
+            cx="93" cy="250" rx="15" ry="11">
+            <title>左膝</title>
+          </ellipse>
+          <!-- 右膝（後ろ）-->
+          <ellipse class="bp" data-region="knee" data-side="right" data-label="右膝"
+            cx="127" cy="250" rx="15" ry="11">
+            <title>右膝</title>
+          </ellipse>
+          <!-- 左下腿（後ろ）-->
+          <ellipse class="bp" data-region="lowerLeg" data-side="left" data-label="左下腿"
+            cx="91" cy="276" rx="12" ry="24">
+            <title>左下腿</title>
+          </ellipse>
+          <!-- 右下腿（後ろ）-->
+          <ellipse class="bp" data-region="lowerLeg" data-side="right" data-label="右下腿"
+            cx="129" cy="276" rx="12" ry="24">
+            <title>右下腿</title>
+          </ellipse>
+          <!-- 左足（後ろ）-->
+          <ellipse class="bp" data-region="foot" data-side="left" data-label="左足"
+            cx="86" cy="308" rx="19" ry="12">
+            <title>左足</title>
+          </ellipse>
+          <!-- 右足（後ろ）-->
+          <ellipse class="bp" data-region="foot" data-side="right" data-label="右足"
+            cx="134" cy="308" rx="19" ry="12">
+            <title>右足</title>
+          </ellipse>
+        </svg>
+
+      </div>
+    </div>
+
+    <!-- 選択済み部位リスト -->
+    <div class="selected-section">
+      <div class="selected-title">
+        <span class="material-symbols-outlined">pin_drop</span>
+        選択中の部位
+      </div>
+      <div class="selected-list" id="selected-list">
+        <p class="selected-empty">痛い部位をタップしてください</p>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- 保存バー -->
+  <div class="save-bar">
+    <div style="flex:1;">
+      <button class="save-btn" id="save-btn">きろくを保存</button>
+      <p class="save-status" id="save-status"></p>
+    </div>
+  </div>
+
+  <script src="/js/liff-init.js"></script>
+  <script>
+    // ======== 状態管理 ========
+    // { "shoulder_left": 2, "head_center": 1, ... }
+    const painState = {};
+
+    const INTENSITY_LABEL = ["", "軽い", "中程度", "強い"];
+    const INTENSITY_DOTS = (n) => [1, 2, 3].map(i => {
+      const filled = i <= n;
+      const strong = filled && i === 3;
+      return `<span class="intensity-dot${filled ? " filled" + (strong ? " strong" : "") : ""}"></span>`;
+    }).join("");
+
+    // ======== タブ切替 ========
+    document.querySelectorAll(".view-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        const v = tab.dataset.view;
+        document.getElementById("view-front").classList.toggle("active", v === "front");
+        document.getElementById("view-back").classList.toggle("active", v === "back");
+      });
+    });
+
+    // ======== 部位タップ ========
+    function partKey(el) {
+      return `${el.dataset.region}_${el.dataset.side}`;
+    }
+
+    function applyIntensityToAll(key, intensity) {
+      document.querySelectorAll(`.bp[data-region="${key.split("_")[0]}"][data-side="${key.split("_")[1]}"]`)
+        .forEach(el => el.setAttribute("data-intensity", intensity));
+    }
+
+    document.querySelectorAll(".bp").forEach(el => {
+      el.setAttribute("data-intensity", "0");
+
+      el.addEventListener("click", () => {
+        const key = partKey(el);
+        const current = painState[key] || 0;
+        const next = current >= 3 ? 0 : current + 1;
+        if (next === 0) {
+          delete painState[key];
+        } else {
+          painState[key] = next;
+        }
+        applyIntensityToAll(key, next);
+        renderSelectedList();
+      });
+    });
+
+    // ======== 選択リスト描画 ========
+    function renderSelectedList() {
+      const container = document.getElementById("selected-list");
+      const keys = Object.keys(painState);
+      if (keys.length === 0) {
+        container.innerHTML = '<p class="selected-empty">痛い部位をタップしてください</p>';
+        return;
+      }
+      const labelMap = buildLabelMap();
+      container.innerHTML = keys
+        .sort()
+        .map(key => {
+          const intensity = painState[key];
+          const label = labelMap[key] || key;
+          return `
+            <div class="selected-item">
+              <span class="selected-region-name">${escapeHtml(label)}</span>
+              <div class="intensity-dots">${INTENSITY_DOTS(intensity)}</div>
+              <span class="selected-label" style="font-size:11px;color:var(--gray-500);margin-right:4px;">${INTENSITY_LABEL[intensity]}</span>
+              <button class="remove-btn" data-key="${escapeHtml(key)}" title="削除">×</button>
+            </div>`;
+        })
+        .join("");
+
+      container.querySelectorAll(".remove-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const key = btn.dataset.key;
+          delete painState[key];
+          applyIntensityToAll(key, 0);
+          renderSelectedList();
+        });
+      });
+    }
+
+    function buildLabelMap() {
+      const map = {};
+      document.querySelectorAll(".bp[data-label]").forEach(el => {
+        const key = partKey(el);
+        if (!map[key]) map[key] = el.dataset.label;
+      });
+      return map;
+    }
+
+    // ======== 保存 ========
+    document.getElementById("save-btn").addEventListener("click", async () => {
+      const btn = document.getElementById("save-btn");
+      const statusEl = document.getElementById("save-status");
+      btn.disabled = true;
+      statusEl.textContent = "保存中...";
+      statusEl.className = "save-status";
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        await apiPost("/api/symptoms", { date: today, bodyPains: { ...painState } });
+        statusEl.textContent = "✓ きろくを保存しました";
+        statusEl.className = "save-status ok";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "保存に失敗しました。もう一度お試しください。";
+        statusEl.className = "save-status err";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ======== 既存データのロード ========
+    async function loadTodayBodyPains() {
+      try {
+        const log = await apiGet("/api/symptoms/today");
+        if (!log?.bodyPains) return;
+        Object.entries(log.bodyPains).forEach(([key, intensity]) => {
+          if (intensity > 0) {
+            painState[key] = intensity;
+            applyIntensityToAll(key, intensity);
+          }
+        });
+        renderSelectedList();
+      } catch (_) {}
+    }
+
+    // ======== 初期化 ========
+    document.addEventListener("DOMContentLoaded", async () => {
+      await initLiff();
+      await loadTodayBodyPains();
+    });
+  </script>
+</body>
+</html>

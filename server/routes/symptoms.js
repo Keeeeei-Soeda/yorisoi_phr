@@ -90,25 +90,33 @@ router.get("/summary", async (req, res) => {
 // POST /api/symptoms — 記録追加・更新（日付をIDとして使用）
 router.post("/", async (req, res) => {
   try {
-    const { date, bowelCount, bristolScale, bleeding, painScore, memo } = req.body;
+    const {
+      date, bowelCount, bristolScale, bleeding, painScore, memo,
+      // FM専用フィールド
+      overallPain, overallPainLabel, mood, moodLabel,
+      bodyPains, pressureHpa, temperatureC, tags,
+    } = req.body;
     const targetDate = date || new Date().toISOString().slice(0, 10);
 
-    if (bowelCount == null) {
-      return res.status(400).json({ error: "bowelCount is required" });
-    }
+    const data = { date: targetDate, updatedAt: new Date() };
 
-    const data = {
-      date: targetDate,
-      bowelCount: parseInt(bowelCount),
-      bristolScale: bristolScale != null ? parseInt(bristolScale) : null,
-      bleeding: !!bleeding,
-      painScore: painScore != null ? parseInt(painScore) : null,
-      memo: memo || "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    // IBD系フィールド（任意）
+    if (bowelCount != null) data.bowelCount = parseInt(bowelCount);
+    if (bristolScale != null) data.bristolScale = parseInt(bristolScale);
+    if (bleeding != null) data.bleeding = !!bleeding;
+    if (painScore != null) data.painScore = parseInt(painScore);
+    if (memo != null) data.memo = memo;
 
-    // 日付をドキュメントIDとして使用（1日1レコード、上書き可）
+    // FM専用フィールド（任意）
+    if (overallPain != null) data.overallPain = parseInt(overallPain);
+    if (overallPainLabel != null) data.overallPainLabel = String(overallPainLabel);
+    if (mood != null) data.mood = parseInt(mood);
+    if (moodLabel != null) data.moodLabel = String(moodLabel);
+    if (bodyPains != null) data.bodyPains = bodyPains;
+    if (pressureHpa != null) data.pressureHpa = parseFloat(pressureHpa);
+    if (temperatureC != null) data.temperatureC = parseFloat(temperatureC);
+    if (Array.isArray(tags)) data.tags = tags;
+
     await userRef(req.lineUserId)
       .collection("symptom_logs")
       .doc(targetDate)

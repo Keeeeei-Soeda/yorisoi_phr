@@ -336,6 +336,15 @@
         });
       }
 
+      if (template.homeConfig?.painButtons?.length) {
+        buttons.push({
+          href: "/body-pain.html" + q,
+          icon: "accessibility_new",
+          label: "部位別きろく",
+          desc: "人型で痛い部位をタップ記録",
+        });
+      }
+
       if (template.labConfig?.items?.length) {
         buttons.push({
           href: "/lab-tracker.html" + q,
