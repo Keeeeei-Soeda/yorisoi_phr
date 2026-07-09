@@ -66,20 +66,36 @@ jobs:
 
       - name: Deploy to Cloud Run
         id: deploy
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.REGION }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          source: .
-          flags: --allow-unauthenticated --memory=512Mi
-          env_vars: |
-            GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}
-            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-            GEMINI_MODEL_PRIMARY=gemini-3.1-flash-lite
-            GEMINI_MODEL_FALLBACK=gemini-3-flash
-            ALLOW_ORIGIN=${{ secrets.ALLOW_ORIGIN }}
-            DEMO_MODE=1
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ALLOW_ORIGIN: ${{ secrets.ALLOW_ORIGIN }}
+        run: |
+          set -euxo pipefail
+          gcloud config set project "$GCP_PROJECT_ID"
+          ORIGIN="${ALLOW_ORIGIN:-*}"
+
+          cat > /tmp/env.yaml <<EOF
+          GOOGLE_CLOUD_PROJECT: "${GCP_PROJECT_ID}"
+          GEMINI_API_KEY: "${GEMINI_API_KEY}"
+          GEMINI_MODEL_PRIMARY: gemini-3.1-flash-lite
+          GEMINI_MODEL_FALLBACK: gemini-3-flash
+          ALLOW_ORIGIN: "${ORIGIN}"
+          DEMO_MODE: "1"
+          EOF
+
+          gcloud run deploy "${{ env.SERVICE_NAME }}" \
+            --source . \
+            --region "${{ env.REGION }}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --env-vars-file /tmp/env.yaml
+
+          URL=$(gcloud run services describe "${{ env.SERVICE_NAME }}" \
+            --region "${{ env.REGION }}" \
+            --format 'value(status.url)')
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         env:
