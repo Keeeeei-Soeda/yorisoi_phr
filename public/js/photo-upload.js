@@ -15,7 +15,7 @@ async function pickPhoto({ camera = false } = {}) {
       const file = e.target.files?.[0];
       if (!file) return reject(new Error("ファイルが選択されませんでした"));
       try {
-        const resized = await resizeImage(file, 1600);
+        const resized = await resizeImage(file, 2000);
         resolve(resized);
       } catch (err) {
         reject(err);
@@ -25,7 +25,7 @@ async function pickPhoto({ camera = false } = {}) {
   });
 }
 
-async function resizeImage(file, maxSize = 1600) {
+async function resizeImage(file, maxSize = 2000) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {

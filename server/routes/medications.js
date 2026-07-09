@@ -14,6 +14,53 @@ const VALID_CATEGORIES = [
   "other",
 ];
 
+const VALID_DOSAGE_TYPES = ["regular", "prn"];
+const VALID_SOURCES = [
+  "medication_notebook",
+  "drug_info_sheet",
+  "ptp_sheet",
+  "manual",
+  "unknown",
+];
+
+function buildMedicationData(body, defaults = {}) {
+  const brandName = body.brandName || body.name;
+  const dosageType = body.dosageType || defaults.dosageType || "regular";
+  const timing = Array.isArray(body.timing)
+    ? body.timing.filter(Boolean)
+    : defaults.timing || [];
+
+  const sideNotesParts = [
+    body.strength,
+    body.dosePerTime,
+    dosageType === "regular" && timing.length ? timing.join("・") : null,
+    dosageType === "prn" ? body.prnCondition : null,
+    body.note,
+  ].filter(Boolean);
+
+  return {
+    name: brandName,
+    brandName: brandName || "",
+    genericName: body.genericName || "",
+    category: body.category || "other",
+    dosageForm: body.dosageForm || "",
+    strength: body.strength || null,
+    dosageType,
+    timing,
+    dosePerTime: body.dosePerTime || null,
+    prnCondition: body.prnCondition || null,
+    note: body.note || null,
+    source: body.source || defaults.source || "manual",
+    startDate: body.startDate,
+    endDate: body.endDate || null,
+    isActive: body.endDate ? false : body.isActive !== false,
+    changeReason: body.changeReason || "",
+    sideNotes: body.sideNotes || sideNotesParts.join(" / "),
+    createdAt: defaults.createdAt || new Date(),
+    updatedAt: new Date(),
+  };
+}
+
 // GET /api/medications — 薬一覧（開始日降順）
 router.get("/", async (req, res) => {
   try {
@@ -50,37 +97,23 @@ router.get("/active", async (req, res) => {
 // POST /api/medications — 薬追加
 router.post("/", async (req, res) => {
   try {
-    const {
-      name,
-      genericName,
-      category,
-      dosageForm,
-      startDate,
-      endDate,
-      changeReason,
-      sideNotes,
-    } = req.body;
+    const brandName = req.body.brandName || req.body.name;
+    const { category, startDate } = req.body;
 
-    if (!name || !startDate) {
-      return res.status(400).json({ error: "name and startDate are required" });
+    if (!brandName || !startDate) {
+      return res.status(400).json({ error: "name (or brandName) and startDate are required" });
     }
     if (category && !VALID_CATEGORIES.includes(category)) {
       return res.status(400).json({ error: "Invalid category" });
     }
+    if (req.body.dosageType && !VALID_DOSAGE_TYPES.includes(req.body.dosageType)) {
+      return res.status(400).json({ error: "Invalid dosageType" });
+    }
+    if (req.body.source && !VALID_SOURCES.includes(req.body.source)) {
+      return res.status(400).json({ error: "Invalid source" });
+    }
 
-    const data = {
-      name,
-      genericName: genericName || "",
-      category: category || "other",
-      dosageForm: dosageForm || "",
-      startDate,
-      endDate: endDate || null,
-      isActive: !endDate,
-      changeReason: changeReason || "",
-      sideNotes: sideNotes || "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const data = buildMedicationData(req.body);
 
     const ref = await userRef(req.lineUserId)
       .collection("medications")
@@ -107,9 +140,17 @@ router.put("/:id", async (req, res) => {
     const updates = { updatedAt: new Date() };
     const allowed = [
       "name",
+      "brandName",
       "genericName",
       "category",
       "dosageForm",
+      "strength",
+      "dosageType",
+      "timing",
+      "dosePerTime",
+      "prnCondition",
+      "note",
+      "source",
       "startDate",
       "endDate",
       "changeReason",

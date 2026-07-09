@@ -40,6 +40,15 @@ try {
   console.warn("AI routes not loaded:", err.message);
 }
 
+// --- 服薬写真抽出（保存しない・デモ/本番共通） ---
+try {
+  const medicationExtractRoutes = require("./routes/medication-extract");
+  app.use("/api/medications", medicationExtractRoutes);
+  console.log("Medication extract routes loaded");
+} catch (err) {
+  console.warn("Medication extract routes not loaded:", err.message);
+}
+
 // --- 公衆トイレ オープンデータ（認証不要・デモ/本番共通） ---
 try {
   const restroomRoutes = require("./routes/restrooms");

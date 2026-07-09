@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>おくすり一覧 - よりそい PHR</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .med-status { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .med-status-active { background: #22c55e; }
+    .med-status-inactive { background: var(--gray-300); }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--gray-500); letter-spacing: 0.5px; margin: 20px 0 8px; }
+    .type-badge-regular { background: #ede9fe; color: #5b21b6; }
+    .type-badge-prn { background: #fef3c7; color: #92400e; }
+    .usage-line { font-size: 13px; color: var(--gray-600); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="header" id="page-header">
+    <button class="header-back" onclick="location.href='/'">&larr;</button>
+    <h1>おくすり一覧</h1>
+  </div>
+
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);border:none;">
+      <div style="font-size:12px;color:#5b21b6;font-weight:600;margin-bottom:8px;">📷 写真から追加</div>
+      <button class="btn btn-outline" onclick="location.href='/medication-photo-register.html'" style="padding:10px;font-size:13px;">写真で服薬登録へ</button>
+    </div>
+
+    <div id="meds-container">
+      <div class="loading"><div class="loading-spinner"></div><p class="mt-8 text-sm text-muted">読み込み中...</p></div>
+    </div>
+  </div>
+
+  <button class="fab" onclick="location.href='/medication-edit.html'" title="手入力で追加">+</button>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const { template } = await initLiff();
+        if (template.color) {
+          document.getElementById("page-header").style.background =
+            `linear-gradient(135deg, ${template.color}, ${template.color}dd)`;
+        }
+        const meds = await apiGet("/api/medications");
+        renderMedications(meds);
+      } catch (err) {
+        console.error(err);
+        document.getElementById("meds-container").innerHTML =
+          '<p class="text-sm" style="color:var(--danger)">読み込みに失敗しました</p>';
+      }
+    });
+
+    function renderMedications(meds) {
+      const container = document.getElementById("meds-container");
+      if (!meds || meds.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128138;</div><p class="empty-state-text">まだおくすりが登録されていません。</p></div>';
+        return;
+      }
+
+      const active = meds.filter((m) => m.isActive);
+      const past = meds.filter((m) => !m.isActive);
+      const activeRegular = active.filter((m) => (m.dosageType || "regular") !== "prn");
+      const activePrn = active.filter((m) => m.dosageType === "prn");
+
+      let html = "";
+      if (activeRegular.length) {
+        html += '<div class="section-title">定期（現在服用中）</div>';
+        html += activeRegular.map(medCard).join("");
+      }
+      if (activePrn.length) {
+        html += '<div class="section-title">頓服（現在服用中）</div>';
+        html += activePrn.map(medCard).join("");
+      }
+      if (past.length) {
+        html += '<div class="section-title">過去の処方</div>';
+        html += past.map(medCard).join("");
+      }
+      container.innerHTML = html;
+    }
+
+    function medCard(med) {
+      const isPrn = med.dosageType === "prn";
+      const typeBadge = isPrn
+        ? '<span class="badge type-badge-prn">頓服</span>'
+        : '<span class="badge type-badge-regular">定期</span>';
+      const usage = isPrn
+        ? (med.prnCondition || med.sideNotes || "—")
+        : ((med.timing || []).join("・") || med.sideNotes || "—");
+      const dose = med.dosePerTime ? `${med.dosePerTime} / ` : "";
+      const period = med.isActive
+        ? `${formatDate(med.startDate)} 〜 現在`
+        : `${formatDate(med.startDate)} 〜 ${formatDate(med.endDate)}`;
+
+      return `
+        <div class="card" onclick="location.href='/medication-edit.html?id=${med.id}'" style="cursor:pointer">
+          <div class="flex-between">
+            <div>
+              <span class="med-status ${med.isActive ? "med-status-active" : "med-status-inactive"}"></span>
+              <span class="card-title">${escapeHtml(med.brandName || med.name)}</span>
+            </div>
+            ${typeBadge}
+          </div>
+          ${med.genericName ? `<div class="text-sm text-muted mt-8">${escapeHtml(med.genericName)}</div>` : ""}
+          ${med.strength ? `<div class="text-sm text-muted">${escapeHtml(med.strength)}</div>` : ""}
+          <div class="usage-line">${escapeHtml(dose + usage)}</div>
+          <div class="text-sm text-muted mt-8">${period}</div>
+        </div>`;
+    }
+  </script>
+</body>
+</html>

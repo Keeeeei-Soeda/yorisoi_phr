@@ -1,0 +1,177 @@
+{
+  "id": "fm",
+  "name": "線維筋痛症",
+  "shortName": "FM",
+  "description": "線維筋痛症（Fibromyalgia）の服薬・症状を管理",
+  "color": "#7c3aed",
+  "icon": "healing",
+
+  "modules": [
+    {
+      "id": "medication-photo",
+      "label": "写真で服薬登録",
+      "description": "お薬手帳・薬情・PTPシートから服薬を登録",
+      "icon": "photo_camera",
+      "page": "medication-photo-register.html",
+      "enabled": true,
+      "core": true
+    },
+    {
+      "id": "medications",
+      "label": "おくすり一覧",
+      "description": "定期・頓服の服薬リスト",
+      "icon": "medication",
+      "page": "medications-fm.html",
+      "enabled": true,
+      "core": true
+    },
+    {
+      "id": "symptom-log",
+      "label": "症状きろく",
+      "description": "痛み・疲労・睡眠を毎日記録",
+      "icon": "edit_note",
+      "page": "symptom-log.html",
+      "enabled": true
+    },
+    {
+      "id": "timeline",
+      "label": "治療タイムライン",
+      "description": "治療経歴を時系列で管理",
+      "icon": "timeline",
+      "page": "timeline.html",
+      "enabled": true
+    },
+    {
+      "id": "summary",
+      "label": "診察用サマリー",
+      "description": "診察時に医師に見せる画面",
+      "icon": "description",
+      "page": "summary.html",
+      "enabled": true,
+      "core": true,
+      "fullWidth": true
+    },
+    {
+      "id": "resources",
+      "label": "患者会・支援情報",
+      "description": "患者会・医療費助成・診療拠点情報",
+      "icon": "groups",
+      "page": "resources.html",
+      "enabled": true,
+      "fullWidth": true
+    }
+  ],
+
+  "medicationMaster": "fm-medications.json",
+
+  "medicationConfig": {
+    "supportsPhotoExtract": true,
+    "dosageTypes": [
+      { "id": "regular", "label": "定期" },
+      { "id": "prn", "label": "頓服" }
+    ]
+  },
+
+  "resourcesConfig": {
+    "title": "患者会・支援情報",
+    "intro": "線維筋痛症は広範囲にわたる慢性疼痛と疲労を特徴とする疾患です。指定難病に指定されており、医療費助成制度の対象です。",
+    "sections": [
+      {
+        "heading": "患者会・ピアサポート",
+        "icon": "groups",
+        "items": [
+          {
+            "name": "日本線維筋痛症友の会",
+            "url": "https://fibromyalgia.jp/",
+            "note": "全国の患者会活動・情報提供"
+          }
+        ]
+      },
+      {
+        "heading": "公的支援・医療費助成",
+        "icon": "account_balance",
+        "items": [
+          {
+            "name": "厚生労働省 指定難病医療費助成",
+            "url": "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/kenkou/nanbyou/",
+            "note": "線維筋痛症は指定難病（指定難病36）に該当"
+          }
+        ]
+      },
+      {
+        "heading": "医療情報",
+        "icon": "local_hospital",
+        "items": [
+          {
+            "name": "日本リウマチ学会",
+            "url": "https://www.ryumachi-jp.com/",
+            "note": "線維筋痛症の診療ガイドライン・専門医検索"
+          }
+        ]
+      }
+    ],
+    "footer": "掲載情報は執筆時点のものです。最新情報は各公式サイト・主治医にご確認ください。"
+  },
+
+  "symptomConfig": {
+    "title": "症状きろく",
+    "metrics": [
+      {
+        "id": "widespreadPain",
+        "label": "広範囲の痛み",
+        "type": "scale",
+        "min": 0,
+        "max": 5,
+        "labels": ["なし", "軽い", "中", "強い", "とても強い", "耐えられない"]
+      },
+      {
+        "id": "fatigue",
+        "label": "疲労感",
+        "type": "scale",
+        "min": 0,
+        "max": 5
+      },
+      {
+        "id": "sleepQuality",
+        "label": "睡眠の質",
+        "type": "scale",
+        "min": 0,
+        "max": 5,
+        "labels": ["とても良い", "良い", "普通", "悪い", "とても悪い", "ほとんど眠れない"]
+      },
+      {
+        "id": "cognitiveFog",
+        "label": "Fibro Fog（ぼんやり感）",
+        "type": "scale",
+        "min": 0,
+        "max": 5
+      },
+      {
+        "id": "headache",
+        "label": "頭痛",
+        "type": "toggle"
+      }
+    ],
+    "summaryMetrics": [
+      { "id": "widespreadPain", "label": "平均痛み", "aggregate": "avg" },
+      { "id": "fatigue", "label": "平均疲労", "aggregate": "avg" },
+      { "id": "sleepQuality", "label": "平均睡眠", "aggregate": "avg" }
+    ]
+  },
+
+  "labConfig": {
+    "items": [
+      { "id": "crp", "label": "CRP", "unit": "mg/dL", "normalRange": [0, 0.3] },
+      { "id": "esr", "label": "赤沈（ESR）", "unit": "mm/h", "normalRange": [0, 20] }
+    ]
+  },
+
+  "timelineCategories": [
+    { "id": "diagnosis", "label": "診断", "color": "#dbeafe" },
+    { "id": "medication_change", "label": "薬変更", "color": "#d1fae5" },
+    { "id": "flare", "label": "増悪", "color": "#fca5a5" },
+    { "id": "exam", "label": "検査", "color": "#e9d5ff" },
+    { "id": "self-log", "label": "じぶんメモ", "color": "#e0f2fe" },
+    { "id": "other", "label": "その他", "color": "#e5e5e5" }
+  ]
+}

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>写真で服薬登録 - よりそい PHR</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .hero-card {
+      background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+      border: none;
+      text-align: center;
+      padding: 24px 16px;
+    }
+    .hero-card h2 { font-size: 17px; font-weight: 700; color: #5b21b6; margin-bottom: 8px; }
+    .hero-card p { font-size: 12px; color: #6d28d9; line-height: 1.6; }
+    .med-card { border: 1px solid var(--gray-200); border-radius: 12px; padding: 14px; margin-bottom: 12px; background: var(--white); }
+    .med-card.needs-review { border-color: #f59e0b; background: #fffbeb; }
+    .med-card.low-confidence { border-color: #ef4444; background: #fef2f2; }
+    .badge-review { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; }
+    .badge-low { background: #fee2e2; color: #991b1b; }
+    .field-label { font-size: 11px; color: var(--gray-500); margin-bottom: 4px; font-weight: 600; }
+    .field-input {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--gray-200);
+      border-radius: 8px; font-size: 14px; margin-bottom: 10px; box-sizing: border-box;
+    }
+    .field-input.missing { border-color: #f59e0b; background: #fffbeb; }
+    .dosage-toggle { display: flex; gap: 8px; margin-bottom: 10px; }
+    .dosage-toggle button {
+      flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--gray-200);
+      background: var(--white); font-size: 13px; cursor: pointer;
+    }
+    .dosage-toggle button.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+    .timing-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .timing-tag {
+      padding: 4px 10px; border-radius: 999px; font-size: 12px;
+      border: 1px solid var(--gray-200); background: var(--gray-50); cursor: pointer;
+    }
+    .timing-tag.selected { background: #ede9fe; border-color: #7c3aed; color: #5b21b6; }
+    .overlay-panel {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .overlay-panel.hidden { display: none; }
+    .overlay-content {
+      background: var(--white); border-radius: var(--radius) var(--radius) 0 0;
+      padding: 20px; width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto;
+    }
+    .safety-note { font-size: 11px; color: #92400e; background: #fef3c7; padding: 10px 12px; border-radius: 8px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="header" id="page-header">
+    <button class="header-back" onclick="location.href='/'">&larr;</button>
+    <h1>写真で服薬登録</h1>
+  </div>
+
+  <div class="content">
+    <div class="hero-card card">
+      <h2>📷 お薬を撮影して登録</h2>
+      <p>お薬手帳のシール・お薬説明書（薬情）・PTPシートを撮影すると、AIが薬名・用法・定期/頓服を読み取ります。<br>必ず内容を確認してから保存してください。</p>
+      <button class="btn btn-primary" id="btn-take-photo" style="margin-top:16px;">写真を撮る / 選ぶ</button>
+    </div>
+
+    <div class="safety-note mt-8">
+      AIの読み取り結果は自動保存されません。確認・修正後に保存ボタンを押してください。
+    </div>
+
+    <div class="section-title" style="font-size:13px;font-weight:700;color:var(--gray-500);margin:20px 0 8px;">現在の服薬（定期 / 頓服）</div>
+    <div id="meds-preview">
+      <div class="loading"><div class="loading-spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- 確認・修正オーバーレイ -->
+  <div id="confirm-overlay" class="overlay-panel hidden">
+    <div class="overlay-content">
+      <div class="flex-between mb-8">
+        <h2 style="font-size:17px;font-weight:700;">読み取り結果を確認</h2>
+        <button style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray-400);" onclick="closeConfirmOverlay()">&times;</button>
+      </div>
+      <p class="text-sm text-muted mb-8">内容を確認・修正してから保存してください。黄色・赤の項目は要確認です。</p>
+      <div id="extract-source" class="text-sm text-muted mb-8"></div>
+      <div id="confirm-cards"></div>
+      <button class="btn btn-outline" id="btn-add-manual" style="margin-bottom:12px;">＋ 手入力で薬を追加</button>
+      <button class="btn btn-primary" id="btn-save-all">確認して保存する</button>
+      <button class="btn" style="background:none;color:var(--gray-500);margin-top:8px;" onclick="closeConfirmOverlay()">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- 処理中オーバーレイ -->
+  <div id="processing-overlay" class="overlay-panel hidden">
+    <div class="overlay-content" style="text-align:center;padding:40px 20px;">
+      <div class="loading-spinner" style="margin:0 auto 16px;"></div>
+      <p id="processing-text" class="text-sm text-muted">お薬情報を読み取り中...</p>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script src="/js/photo-upload.js"></script>
+  <script>
+    const TIMING_OPTIONS = ["起床時", "朝食前", "朝食後", "昼食前", "昼食後", "夕食前", "夕食後", "就寝前"];
+    const SOURCE_LABELS = {
+      medication_notebook: "お薬手帳",
+      drug_info_sheet: "お薬説明書",
+      ptp_sheet: "PTPシート",
+      unknown: "不明",
+      manual: "手入力",
+    };
+
+    let extractedMeds = [];
+    let extractSourceType = "unknown";
+    let extractSourceRaw = null;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const { template } = await initLiff();
+        if (template.color) {
+          document.getElementById("page-header").style.background =
+            `linear-gradient(135deg, ${template.color}, ${template.color}dd)`;
+        }
+        await loadMedicationPreview();
+        setupPhotoButton();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("meds-preview").innerHTML =
+          '<p class="text-sm" style="color:var(--danger)">読み込みに失敗しました</p>';
+      }
+    });
+
+    function setupPhotoButton() {
+      document.getElementById("btn-take-photo").addEventListener("click", () => {
+        showPhotoPicker({
+          onSelect: async (dataUri) => {
+            showProcessing("お薬情報を読み取り中...");
+            try {
+              const res = await apiPost("/api/medications/extract", { image: dataUri });
+              hideProcessing();
+              if (res.extractionFailed || !res.medications || res.medications.length === 0) {
+                alert("読み取れませんでした。手入力で追加してください。");
+                extractedMeds = [createEmptyMed("manual")];
+                extractSourceType = "unknown";
+                openConfirmOverlay(res);
+                return;
+              }
+              extractedMeds = res.medications.map(normalizeMed);
+              extractSourceType = res.sourceType || "unknown";
+              extractSourceRaw = res;
+              openConfirmOverlay(res);
+            } catch (err) {
+              hideProcessing();
+              alert("読み取りに失敗しました: " + err.message);
+            }
+          },
+        });
+      });
+
+      document.getElementById("btn-add-manual").addEventListener("click", () => {
+        extractedMeds.push(createEmptyMed("manual"));
+        renderConfirmCards();
+      });
+
+      document.getElementById("btn-save-all").addEventListener("click", saveAllMedications);
+    }
+
+    function createEmptyMed(source) {
+      return {
+        brandName: "",
+        genericName: null,
+        strength: null,
+        dosageType: "regular",
+        timing: [],
+        dosePerTime: null,
+        prnCondition: null,
+        note: null,
+        confidence: "low",
+        source,
+        _manual: source === "manual",
+      };
+    }
+
+    function normalizeMed(m) {
+      return {
+        brandName: m.brandName || "",
+        genericName: m.genericName || null,
+        strength: m.strength || null,
+        dosageType: m.dosageType || "regular",
+        timing: Array.isArray(m.timing) ? [...m.timing] : [],
+        dosePerTime: m.dosePerTime || null,
+        prnCondition: m.prnCondition || null,
+        note: m.note || null,
+        confidence: m.confidence || "medium",
+        source: extractSourceType,
+        _manual: false,
+      };
+    }
+
+    function showProcessing(text) {
+      document.getElementById("processing-text").textContent = text;
+      document.getElementById("processing-overlay").classList.remove("hidden");
+    }
+
+    function hideProcessing() {
+      document.getElementById("processing-overlay").classList.add("hidden");
+    }
+
+    function openConfirmOverlay(res) {
+      document.getElementById("extract-source").textContent =
+        res?.usedFallback ? "※読み取り精度向上のため再解析しました" : "";
+      renderConfirmCards();
+      document.getElementById("confirm-overlay").classList.remove("hidden");
+    }
+
+    function closeConfirmOverlay() {
+      document.getElementById("confirm-overlay").classList.add("hidden");
+    }
+
+    function medNeedsReview(m) {
+      return m.confidence === "low" || !m.brandName ||
+        (m.dosageType === "regular" && (!m.timing || m.timing.length === 0)) ||
+        (m.dosageType === "prn" && !m.prnCondition) ||
+        !m.dosePerTime;
+    }
+
+    function renderConfirmCards() {
+      const container = document.getElementById("confirm-cards");
+      if (extractedMeds.length === 0) {
+        container.innerHTML = '<p class="text-sm text-muted">薬がありません。「手入力で薬を追加」を押してください。</p>';
+        return;
+      }
+
+      container.innerHTML = extractedMeds.map((m, i) => {
+        const cardClass = m.confidence === "low" ? "low-confidence" : (medNeedsReview(m) ? "needs-review" : "");
+        const badges = [];
+        if (m.confidence === "low") badges.push('<span class="badge-review badge-low">要確認（低信頼）</span>');
+        else if (medNeedsReview(m)) badges.push('<span class="badge-review">要確認</span>');
+
+        const timingHtml = TIMING_OPTIONS.map((t) =>
+          `<span class="timing-tag ${m.timing.includes(t) ? "selected" : ""}" data-idx="${i}" data-timing="${t}">${t}</span>`
+        ).join("");
+
+        return `
+          <div class="med-card ${cardClass}" data-idx="${i}">
+            <div class="flex-between mb-8">
+              <strong>薬 ${i + 1}</strong>
+              <div>${badges.join(" ")}</div>
+            </div>
+            <div class="field-label">商品名 *</div>
+            <input class="field-input ${!m.brandName ? "missing" : ""}" data-field="brandName" data-idx="${i}" value="${escapeAttr(m.brandName)}" placeholder="例: プレガバリンOD錠75mg">
+            <div class="field-label">一般名</div>
+            <input class="field-input ${!m.genericName ? "missing" : ""}" data-field="genericName" data-idx="${i}" value="${escapeAttr(m.genericName || "")}" placeholder="例: プレガバリン">
+            <div class="field-label">規格/含量</div>
+            <input class="field-input ${!m.strength ? "missing" : ""}" data-field="strength" data-idx="${i}" value="${escapeAttr(m.strength || "")}" placeholder="例: 75mg">
+            <div class="field-label">定期 / 頓服</div>
+            <div class="dosage-toggle">
+              <button type="button" class="${m.dosageType === "regular" ? "active" : ""}" data-idx="${i}" data-type="regular">定期</button>
+              <button type="button" class="${m.dosageType === "prn" ? "active" : ""}" data-idx="${i}" data-type="prn">頓服</button>
+            </div>
+            <div class="regular-fields" style="${m.dosageType === "prn" ? "display:none" : ""}">
+              <div class="field-label">服用タイミング</div>
+              <div class="timing-tags">${timingHtml}</div>
+            </div>
+            <div class="prn-fields" style="${m.dosageType !== "prn" ? "display:none" : ""}">
+              <div class="field-label">頓服条件</div>
+              <input class="field-input ${!m.prnCondition ? "missing" : ""}" data-field="prnCondition" data-idx="${i}" value="${escapeAttr(m.prnCondition || "")}" placeholder="例: 痛い時 1日3回まで">
+            </div>
+            <div class="field-label">1回量</div>
+            <input class="field-input ${!m.dosePerTime ? "missing" : ""}" data-field="dosePerTime" data-idx="${i}" value="${escapeAttr(m.dosePerTime || "")}" placeholder="例: 1錠">
+            <div class="field-label">備考</div>
+            <input class="field-input" data-field="note" data-idx="${i}" value="${escapeAttr(m.note || "")}" placeholder="任意">
+            <button type="button" class="btn" style="background:#fee2e2;color:#991b1b;font-size:12px;padding:6px 12px;" data-remove="${i}">この薬を削除</button>
+          </div>`;
+      }).join("");
+
+      container.querySelectorAll(".field-input").forEach((el) => {
+        el.addEventListener("input", () => {
+          const idx = parseInt(el.dataset.idx);
+          extractedMeds[idx][el.dataset.field] = el.value || null;
+          if (el.dataset.field === "brandName") extractedMeds[idx][el.dataset.field] = el.value;
+        });
+      });
+
+      container.querySelectorAll(".dosage-toggle button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.dataset.idx);
+          extractedMeds[idx].dosageType = btn.dataset.type;
+          renderConfirmCards();
+        });
+      });
+
+      container.querySelectorAll(".timing-tag").forEach((tag) => {
+        tag.addEventListener("click", () => {
+          const idx = parseInt(tag.dataset.idx);
+          const t = tag.dataset.timing;
+          const arr = extractedMeds[idx].timing;
+          const pos = arr.indexOf(t);
+          if (pos >= 0) arr.splice(pos, 1);
+          else arr.push(t);
+          renderConfirmCards();
+        });
+      });
+
+      container.querySelectorAll("[data-remove]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          extractedMeds.splice(parseInt(btn.dataset.remove), 1);
+          renderConfirmCards();
+        });
+      });
+    }
+
+    async function saveAllMedications() {
+      syncInputsFromDom();
+      const valid = extractedMeds.filter((m) => m.brandName && m.brandName.trim());
+      if (valid.length === 0) {
+        alert("商品名が入力された薬がありません。");
+        return;
+      }
+
+      const needsReview = valid.filter(medNeedsReview);
+      if (needsReview.length > 0) {
+        const ok = confirm(`${needsReview.length}件に未入力・要確認項目があります。このまま保存しますか？`);
+        if (!ok) return;
+      }
+
+      const btn = document.getElementById("btn-save-all");
+      btn.disabled = true;
+      btn.textContent = "保存中...";
+      const today = new Date().toISOString().slice(0, 10);
+      let count = 0;
+
+      for (const m of valid) {
+        try {
+          await apiPost("/api/medications", {
+            brandName: m.brandName.trim(),
+            name: m.brandName.trim(),
+            genericName: m.genericName || "",
+            strength: m.strength,
+            dosageType: m.dosageType,
+            timing: m.dosageType === "regular" ? (m.timing || []) : [],
+            dosePerTime: m.dosePerTime,
+            prnCondition: m.dosageType === "prn" ? m.prnCondition : null,
+            note: m.note,
+            source: m._manual ? "manual" : (extractSourceType || "unknown"),
+            category: "other",
+            dosageForm: "経口",
+            startDate: today,
+            endDate: null,
+            changeReason: m._manual ? "手入力" : "写真から登録",
+          });
+          count++;
+        } catch (e) {
+          console.warn("Save failed:", m.brandName, e);
+        }
+      }
+
+      btn.disabled = false;
+      btn.textContent = "確認して保存する";
+      closeConfirmOverlay();
+      alert(`${count}件のおくすりを保存しました`);
+      extractedMeds = [];
+      await loadMedicationPreview();
+    }
+
+    function syncInputsFromDom() {
+      document.querySelectorAll("#confirm-cards .field-input").forEach((el) => {
+        const idx = parseInt(el.dataset.idx);
+        const field = el.dataset.field;
+        if (extractedMeds[idx]) {
+          extractedMeds[idx][field] = el.value.trim() || null;
+          if (field === "brandName") extractedMeds[idx].brandName = el.value.trim();
+        }
+      });
+    }
+
+    async function loadMedicationPreview() {
+      const container = document.getElementById("meds-preview");
+      try {
+        const meds = await apiGet("/api/medications/active");
+        if (!meds.length) {
+          container.innerHTML = '<p class="text-sm text-muted">まだ服薬が登録されていません。上のボタンから登録してください。</p>';
+          return;
+        }
+        const regular = meds.filter((m) => (m.dosageType || "regular") === "regular");
+        const prn = meds.filter((m) => m.dosageType === "prn");
+        let html = "";
+        if (regular.length) {
+          html += '<div style="font-size:12px;font-weight:700;color:var(--gray-500);margin-bottom:6px;">定期</div>';
+          html += regular.map(previewCard).join("");
+        }
+        if (prn.length) {
+          html += '<div style="font-size:12px;font-weight:700;color:var(--gray-500);margin:12px 0 6px;">頓服</div>';
+          html += prn.map(previewCard).join("");
+        }
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = '<p class="text-sm text-muted">一覧の読み込みに失敗しました</p>';
+      }
+    }
+
+    function previewCard(m) {
+      const typeLabel = m.dosageType === "prn" ? "頓服" : "定期";
+      const usage = m.dosageType === "prn"
+        ? (m.prnCondition || "—")
+        : ((m.timing || []).join("・") || "—");
+      return `
+        <div class="card" style="padding:12px;margin-bottom:8px;cursor:pointer;" onclick="location.href='/medications-fm.html'">
+          <div class="flex-between">
+            <strong>${escapeHtml(m.brandName || m.name)}</strong>
+            <span class="badge">${typeLabel}</span>
+          </div>
+          <div class="text-sm text-muted">${escapeHtml(m.genericName || "")}</div>
+          <div class="text-sm">${escapeHtml(m.dosePerTime || "")} ${escapeHtml(usage)}</div>
+        </div>`;
+    }
+
+    function escapeAttr(s) {
+      return String(s || "").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    }
+  </script>
+</body>
+</html>

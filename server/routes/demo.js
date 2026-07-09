@@ -548,6 +548,93 @@ const DEMO_DATA = {
       { id: "v5", date: "2025-11-15", clinicId: "c3", department: "膠原病内科", doctor: "天神 凛", chiefComplaint: "膠原病合併スクリーニング", findings: "強皮症・SLE所見なし。抗核抗体陰性。", nextAction: "1年後再スクリーニング。", photos: [], relatedMedicationIds: [], relatedLabResultIds: [], relatedTimelineEventId: null },
     ],
   },
+
+  fm: {
+    profile: {
+      displayName: "デモユーザー",
+      diagnosisName: "線維筋痛症",
+      diagnosisDate: "2021-04-10",
+      diseaseId: "fm",
+    },
+    timeline: [
+      { id: "ev1", date: "2021-04-10", category: "diagnosis", title: "線維筋痛症と診断", detail: "広範囲疼痛・疲労・睡眠障害。ACR 2016基準を満たす。", source: "manual" },
+      { id: "ev2", date: "2021-04-20", category: "medication_change", title: "プレガバリン開始", detail: "75mg 1日2回から。", source: "manual" },
+      { id: "ev3", date: "2022-08-15", category: "medication_change", title: "デュロキセチン追加", detail: "20mg 1日1回。", source: "manual" },
+      { id: "ev4", date: "2024-01-10", category: "medication_change", title: "プレガバリン増量", detail: "150mg 1日2回へ。", source: "manual" },
+    ],
+    medications: [
+      {
+        id: "m1",
+        name: "プレガバリンOD錠75mg",
+        brandName: "プレガバリンOD錠75mg",
+        genericName: "プレガバリン",
+        category: "other",
+        dosageForm: "経口",
+        strength: "75mg",
+        dosageType: "regular",
+        timing: ["朝食後", "夕食後"],
+        dosePerTime: "1錠",
+        prnCondition: null,
+        note: null,
+        source: "medication_notebook",
+        startDate: "2021-04-20",
+        endDate: null,
+        isActive: true,
+        changeReason: "初回処方",
+        sideNotes: "75mg 朝食後・夕食後 各1錠"
+      },
+      {
+        id: "m2",
+        name: "サインバルタカプセル20mg",
+        brandName: "サインバルタカプセル20mg",
+        genericName: "デュロキセチン",
+        category: "other",
+        dosageForm: "経口",
+        strength: "20mg",
+        dosageType: "regular",
+        timing: ["朝食後"],
+        dosePerTime: "1カプセル",
+        prnCondition: null,
+        note: null,
+        source: "manual",
+        startDate: "2022-08-15",
+        endDate: null,
+        isActive: true,
+        changeReason: "疼痛・疲労対策",
+        sideNotes: "20mg 朝食後"
+      },
+      {
+        id: "m3",
+        name: "ロキソニン錠60mg",
+        brandName: "ロキソニン錠60mg",
+        genericName: "ロキソプロフェン",
+        category: "other",
+        dosageForm: "経口",
+        strength: "60mg",
+        dosageType: "prn",
+        timing: [],
+        dosePerTime: "1錠",
+        prnCondition: "痛い時 1日3回まで",
+        note: "食後服用",
+        source: "drug_info_sheet",
+        startDate: "2021-04-20",
+        endDate: null,
+        isActive: true,
+        changeReason: "頓服",
+        sideNotes: "疼痛時 1日3回まで"
+      },
+    ],
+    labResults: [
+      { id: "l1", date: "2026-02-01", values: { crp: 0.05, esr: 8 } },
+      { id: "l2", date: "2025-08-01", values: { crp: 0.08, esr: 10 } },
+    ],
+    clinics: [
+      { id: "c1", name: "○○リウマチ・疼痛クリニック", address: "東京都渋谷区", phone: "03-1234-5678", departments: ["リウマチ科"], isPrimary: true, note: "FMメイン主治医。2ヶ月毎。" },
+    ],
+    visits: [
+      { id: "v1", date: "2026-02-01", clinicId: "c1", department: "リウマチ科", doctor: "渋谷 花", chiefComplaint: "疼痛は安定、疲労が残る", findings: "広範囲疼痛は中等度。睡眠は改善傾向。CRP正常。", nextAction: "現薬継続。次回2ヶ月後。", photos: [], relatedMedicationIds: ["m1", "m2"], relatedLabResultIds: ["l1"], relatedTimelineEventId: null },
+    ],
+  },
 };
 
 // ========================================

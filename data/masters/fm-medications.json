@@ -1,0 +1,23 @@
+{
+  "categories": [
+    { "id": "gaba_analog", "name": "GABA作動性薬", "description": "疼痛・神経障害性疼痛", "step": 1 },
+    { "id": "snri", "name": "SNRI", "description": "疼痛・抑うつ・疲労", "step": 1 },
+    { "id": "tricyclic", "name": "三環系抗うつ薬", "description": "睡眠・疼痛", "step": 2 },
+    { "id": "nsaid", "name": "消炎鎮痛薬", "description": "対症療法", "step": 2 },
+    { "id": "muscle_relaxant", "name": "筋弛緩薬", "description": "筋緊張・睡眠", "step": 3 },
+    { "id": "other", "name": "その他", "description": "", "step": 4 }
+  ],
+  "medications": [
+    { "genericName": "プレガバリン", "brandNames": ["リリカ", "プレガバリンOD"], "category": "gaba_analog", "dosageForms": ["経口"] },
+    { "genericName": "ミロガバリン", "brandNames": ["タリージェ"], "category": "gaba_analog", "dosageForms": ["経口"] },
+    { "genericName": "ガバペンチン", "brandNames": ["ガバペン", "パンテック"], "category": "gaba_analog", "dosageForms": ["経口"] },
+    { "genericName": "デュロキセチン", "brandNames": ["サインバルタ", "デュロキセチン"], "category": "snri", "dosageForms": ["経口"] },
+    { "genericName": "ミルナシプラン", "brandNames": ["トレドミン"], "category": "snri", "dosageForms": ["経口"] },
+    { "genericName": "アミトリプチリン", "brandNames": ["トリプタノール"], "category": "tricyclic", "dosageForms": ["経口"] },
+    { "genericName": "ロキソプロフェン", "brandNames": ["ロキソニン"], "category": "nsaid", "dosageForms": ["経口", "外用"] },
+    { "genericName": "セレコキシブ", "brandNames": ["セレコックス"], "category": "nsaid", "dosageForms": ["経口"] },
+    { "genericName": "エペリゾン", "brandNames": ["マイオパシー"], "category": "muscle_relaxant", "dosageForms": ["経口"] },
+    { "genericName": "トラマドール", "brandNames": ["トラマール"], "category": "other", "dosageForms": ["経口"], "notes": "オピオイド（頓服が多い）" },
+    { "genericName": "ゾルピデム", "brandNames": ["マイスリー"], "category": "other", "dosageForms": ["経口"], "notes": "睡眠導入" }
+  ]
+}
