@@ -53,6 +53,7 @@ jobs:
           fi
 
       - name: Enable required APIs
+        continue-on-error: true
         env:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
@@ -61,7 +62,7 @@ jobs:
             run.googleapis.com \
             cloudbuild.googleapis.com \
             artifactregistry.googleapis.com \
-            --quiet
+            --quiet || echo "::warning::Could not enable APIs (need Service Usage Admin or enable manually in GCP Console)"
 
       - name: Deploy to Cloud Run
         id: deploy
