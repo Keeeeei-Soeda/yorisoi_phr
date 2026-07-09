@@ -11,6 +11,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EXPECTED_PROJECT="yorisoi-senikintsu-syndo"
 EXPECTED_ACCOUNT_HINT="k.soeda.mediforce@gmail.com"
+LIVE_URL="https://yorisoi-phr-fm-test-o7flbqc5ka-an.a.run.app"
 FIX_APIS=false
 
 if [[ "${1:-}" == "--fix-apis" ]]; then
@@ -33,11 +34,24 @@ echo "=== FM 患者テスト環境セットアップ確認 ==="
 echo "プロジェクト: ${EXPECTED_PROJECT}"
 echo ""
 
+# --- 本番テスト URL（別 PC でデプロイ済み） ---
+if curl -fsS "${LIVE_URL}/health" >/dev/null 2>&1; then
+  ok "Cloud Run 患者テスト環境は稼働中: ${LIVE_URL}?disease=fm"
+else
+  warn "Cloud Run テスト URL に接続できません（未デプロイ or ネットワーク）"
+  warnings=$((warnings + 1))
+fi
+
 # --- gcloud CLI ---
 if command -v gcloud >/dev/null 2>&1; then
-  ok "gcloud CLI がインストールされています"
+  if gcloud --version >/dev/null 2>&1; then
+    ok "gcloud CLI がインストールされています"
+  else
+    ng "gcloud はあるが Python 互換エラー → Python 3.10+ を入れて CLOUDSDK_PYTHON を設定、または brew install --cask google-cloud-sdk"
+    errors=$((errors + 1))
+  fi
 else
-  ng "gcloud CLI がありません → https://cloud.google.com/sdk/docs/install"
+  ng "gcloud CLI がありません → brew install --cask google-cloud-sdk"
   errors=$((errors + 1))
 fi
 
@@ -161,13 +175,30 @@ fi
 # --- Summary ---
 echo ""
 echo "=== 結果 ==="
+live_ok=false
+if curl -fsS "${LIVE_URL}/health" >/dev/null 2>&1; then
+  if curl -fsS "${LIVE_URL}/api/ai/health" 2>/dev/null | rg -q '"hasKey":true'; then
+    live_ok=true
+  fi
+fi
+
+if [[ "$live_ok" == true ]]; then
+  ok "患者テスト環境は利用可能です"
+  echo "  → ${LIVE_URL}?disease=fm"
+fi
+
 if [[ $errors -eq 0 ]]; then
-  ok "セットアップ OK — デプロイ可能です"
+  ok "ローカルセットアップ OK — この PC からもデプロイ可能です"
   echo ""
   echo "次のコマンド:"
   echo "  set -a && source .env && set +a"
   echo "  export GCP_PROJECT_ID=${EXPECTED_PROJECT}"
   echo "  ./scripts/deploy-fm-test.sh"
+  exit 0
+elif [[ "$live_ok" == true ]]; then
+  warn "ローカルデプロイ用の設定が未完了（${errors} 件）— 患者テスト自体は上記 URL で可能"
+  echo ""
+  echo "ローカルデプロイを直す場合: docs/fm-deploy-setup-guide.md"
   exit 0
 else
   ng "エラー ${errors} 件 / 警告 ${warnings} 件 — 上記を修正してください"

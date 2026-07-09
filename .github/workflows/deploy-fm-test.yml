@@ -74,14 +74,28 @@ jobs:
           set -euxo pipefail
           gcloud config set project "$GCP_PROJECT_ID"
           ORIGIN="${ALLOW_ORIGIN:-*}"
+
+          # heredoc を YAML 内に書かず python で env ファイル生成（特殊文字対策）
+          python3 <<'PY'
+          import os
+          lines = [
+              f"GOOGLE_CLOUD_PROJECT: {os.environ['GCP_PROJECT_ID']}",
+              f"GEMINI_API_KEY: {os.environ['GEMINI_API_KEY']}",
+              "GEMINI_MODEL_PRIMARY: gemini-3.1-flash-lite",
+              "GEMINI_MODEL_FALLBACK: gemini-3-flash",
+              f"ALLOW_ORIGIN: {os.environ.get('ALLOW_ORIGIN') or '*'}",
+              "DEMO_MODE: '1'",
+          ]
+          open("/tmp/env.yaml", "w").write("\n".join(lines) + "\n")
+          PY
+
           gcloud run deploy "${{ env.SERVICE_NAME }}" \
             --source . \
             --region "${{ env.REGION }}" \
             --platform managed \
             --allow-unauthenticated \
             --memory 512Mi \
-            --set-env-vars "GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID},GEMINI_API_KEY=${GEMINI_API_KEY},GEMINI_MODEL_PRIMARY=gemini-3.1-flash-lite,GEMINI_MODEL_FALLBACK=gemini-3-flash,ALLOW_ORIGIN=${ORIGIN},DEMO_MODE=1" \
-            --quiet
+            --env-vars-file /tmp/env.yaml
 
           URL=$(gcloud run services describe "${{ env.SERVICE_NAME }}" \
             --region "${{ env.REGION }}" \
