@@ -155,6 +155,59 @@
       padding: 8px;
     }
     .intent-skip:hover { color: var(--gray-700); }
+
+    /* ホームウィジェット（気圧・気分） */
+    .home-widgets { padding: 0 0 4px; }
+    .home-widgets.hidden { display: none; }
+    .home-widgets-inner { display: flex; flex-direction: column; gap: 12px; margin-bottom: 6px; }
+    .home-widget-card {
+      background: var(--white);
+      border: 2px solid var(--brand-200);
+      border-radius: 20px;
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .home-widget-title {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 700; color: var(--gray-600);
+      margin-bottom: 10px; letter-spacing: 0.5px;
+    }
+    .home-widget-title .material-symbols-outlined { font-size: 18px; color: var(--brand-600); }
+    .barometer-value {
+      font-size: 32px; font-weight: 800; color: var(--gray-800);
+      line-height: 1.1; letter-spacing: -0.5px;
+    }
+    .barometer-value.loading { font-size: 14px; font-weight: 600; color: var(--gray-500); }
+    .barometer-sub { font-size: 12px; color: var(--gray-500); margin-top: 6px; line-height: 1.5; }
+    .barometer-trend.down { color: #7c3aed; font-weight: 600; }
+    .barometer-trend.up { color: #0284c7; font-weight: 600; }
+    .mood-hint { font-size: 11px; color: var(--gray-500); margin: -4px 0 10px; }
+    .mood-buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    .mood-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; padding: 10px 4px;
+      border: 2px solid var(--gray-200); border-radius: 14px;
+      background: var(--gray-50); cursor: pointer;
+      transition: all 0.15s; min-height: 72px;
+    }
+    .mood-btn:active { transform: scale(0.96); }
+    .mood-btn.selected {
+      border-color: var(--brand-500); background: var(--brand-50);
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15);
+    }
+    .mood-emoji { font-size: 22px; line-height: 1; }
+    .mood-label { font-size: 10px; font-weight: 700; color: var(--gray-600); text-align: center; line-height: 1.2; }
+    .mood-status {
+      margin-top: 10px; font-size: 12px; font-weight: 600;
+      padding: 8px 10px; border-radius: 10px; text-align: center;
+    }
+    .mood-status.hidden { display: none; }
+    .mood-status.success { background: #ede9fe; color: #5b21b6; }
+    .mood-status.error { background: #fee2e2; color: #991b1b; }
   </style>
 </head>
 <body>
@@ -173,9 +226,12 @@
   </div>
 
   <div class="menu-area" id="menu-area">
-    <div class="loading-mask">
-      <div class="loading-spinner"></div>
-      <p class="text-sm mt-8">読み込み中...</p>
+    <div id="home-widgets" class="home-widgets hidden"></div>
+    <div id="home-menu-buttons">
+      <div class="loading-mask">
+        <div class="loading-spinner"></div>
+        <p class="text-sm mt-8">読み込み中...</p>
+      </div>
     </div>
   </div>
 
@@ -202,6 +258,7 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
   <script src="/js/liff-init.js"></script>
+  <script src="/js/home-widgets.js"></script>
   <script>
     const INTENT_KEY = "yorisoi_intent_lastShownAt";
     const INTENT_DAYS = 3; // 3日以上空いたら再表示
@@ -275,6 +332,8 @@
         document.getElementById("header-sub").textContent = sub;
 
         const q = "?disease=" + encodeURIComponent(diseaseId);
+        await initHomeWidgets(document.getElementById("home-widgets"), template);
+
         const buttons = buildHomeButtons(template, q);
         const html = buttons.map(b => `
           <a class="big-button" href="${b.href}">
@@ -287,7 +346,7 @@
             </div>
           </a>
         `).join("");
-        document.getElementById("menu-area").innerHTML = html;
+        document.getElementById("home-menu-buttons").innerHTML = html;
         document.getElementById("settei-link").href = "/simple/settings.html" + q;
         document.getElementById("emergency-link").href = "/emergency-card.html" + q + "&from=simple";
 
@@ -295,7 +354,7 @@
         initIntentModal(q);
       } catch (err) {
         console.error("Init error:", err);
-        document.getElementById("menu-area").innerHTML =
+        document.getElementById("home-menu-buttons").innerHTML =
           '<p class="text-sm" style="color:var(--danger); text-align:center;">読み込みに失敗しました</p>';
       }
     });

@@ -72,6 +72,17 @@
     ]
   },
 
+  "homeConfig": {
+    "barometer": true,
+    "moodButtons": [
+      { "id": "great", "label": "いい感じ", "emoji": "😊", "value": 1 },
+      { "id": "ok", "label": "ふつう", "emoji": "😐", "value": 2 },
+      { "id": "tired", "label": "疲れた", "emoji": "😴", "value": 3 },
+      { "id": "pain", "label": "つらい", "emoji": "😣", "value": 4 },
+      { "id": "bad", "label": "とてもつらい", "emoji": "😰", "value": 5 }
+    ]
+  },
+
   "resourcesConfig": {
     "title": "患者会・支援情報",
     "intro": "線維筋痛症は広範囲にわたる慢性疼痛と疲労を特徴とする疾患です。指定難病に指定されており、医療費助成制度の対象です。",
