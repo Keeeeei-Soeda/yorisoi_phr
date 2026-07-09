@@ -61,8 +61,8 @@ fi
 if command -v gh >/dev/null 2>&1; then
   ok "gh CLI がインストールされています"
   if gh auth status >/dev/null 2>&1; then
-    active_gh=$(gh auth status 2>&1 | rg "Active account:" | head -1 || true)
-    if echo "$active_gh" | rg -q "Keeeeei-Soeda"; then
+    active_gh=$(gh auth status 2>&1 | grep "Active account:" | head -1 || true)
+    if echo "$active_gh" | grep -q "Keeeeei-Soeda"; then
       ok "GitHub アクティブアカウント: Keeeeei-Soeda"
     else
       warn "GitHub push 用は Keeeeei-Soeda 推奨 → gh auth switch --user Keeeeei-Soeda"
@@ -145,7 +145,8 @@ if command -v gcloud >/dev/null 2>&1; then
   )
   missing_apis=()
   for api in "${REQUIRED_APIS[@]}"; do
-    if gcloud services list --enabled --filter="name:${api}" --format="value(name)" 2>/dev/null | rg -q "$api"; then
+    enabled=$(gcloud services list --enabled --filter="name:${api}" --format="value(name)" 2>/dev/null | head -1 || true)
+    if [[ -n "$enabled" && "$enabled" == *"${api}" ]]; then
       ok "${api} 有効"
     else
       ng "${api} 未有効"
@@ -180,7 +181,7 @@ echo ""
 echo "=== 結果 ==="
 live_ok=false
 if curl -fsS "${LIVE_URL}/health" >/dev/null 2>&1; then
-  if curl -fsS "${LIVE_URL}/api/ai/health" 2>/dev/null | rg -q '"hasKey":true'; then
+  if curl -fsS "${LIVE_URL}/api/ai/health" 2>/dev/null | grep -q '"hasKey":true'; then
     live_ok=true
   fi
 fi
