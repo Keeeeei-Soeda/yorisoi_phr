@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>出来事メモ - よりそい PHR</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { padding-bottom: 80px; }
+    .dm-page { max-width: 480px; margin: 0 auto; }
+
+    /* ======== 日付バー ======== */
+    .date-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--white); border-radius: 14px;
+      margin: 0 16px 14px; padding: 12px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .date-label { font-size: 15px; font-weight: 700; color: var(--gray-800); }
+    .date-nav { display: flex; gap: 6px; }
+    .date-btn {
+      background: var(--gray-100); border: none; border-radius: 8px;
+      padding: 6px 10px; font-size: 12px; font-weight: 700;
+      color: var(--gray-600); cursor: pointer;
+    }
+    .date-btn.today { background: var(--brand-50); color: var(--brand-700); }
+
+    /* ======== 固定タグ ======== */
+    .section-title {
+      font-size: 12px; font-weight: 700; color: var(--gray-500);
+      letter-spacing: 0.8px; margin: 0 16px 8px;
+    }
+    .tag-grid {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin: 0 16px 16px;
+    }
+    .tag-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 14px; border-radius: 999px;
+      border: 2px solid var(--gray-200);
+      background: var(--white); font-size: 13px; font-weight: 700;
+      color: var(--gray-600); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tag-btn:active { transform: scale(0.96); }
+    .tag-btn.selected {
+      border-color: var(--brand-400);
+      background: var(--brand-50);
+      color: var(--brand-700);
+    }
+    .tag-icon { font-size: 18px; line-height: 1; }
+
+    /* ======== テキストメモ ======== */
+    .memo-wrap { margin: 0 16px 16px; position: relative; }
+    .memo-textarea {
+      width: 100%; min-height: 110px;
+      padding: 14px 14px 40px 14px;
+      font-size: 15px; font-family: inherit;
+      border: 2px solid var(--gray-200); border-radius: 14px;
+      background: var(--white); line-height: 1.7; resize: vertical;
+      box-sizing: border-box;
+    }
+    .memo-textarea:focus { outline: none; border-color: var(--brand-400); }
+    .voice-badge {
+      position: absolute; bottom: 10px; right: 10px;
+      background: var(--brand-500); color: #fff;
+      border: none; border-radius: 999px;
+      padding: 7px 12px; font-size: 12px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+      transition: all 0.15s;
+    }
+    .voice-badge.recording {
+      background: #dc2626;
+      animation: badge-pulse 1.2s infinite;
+    }
+    @keyframes badge-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+    }
+    .voice-badge .material-symbols-outlined { font-size: 16px; }
+
+    /* ======== ロード済み表示 ======== */
+    .loaded-banner {
+      margin: 0 16px 10px; padding: 10px 14px;
+      background: #fef3c7; border-radius: 12px;
+      font-size: 12px; font-weight: 600; color: #92400e;
+      display: flex; align-items: center; gap: 6px;
+      display: none;
+    }
+    .loaded-banner.show { display: flex; }
+    .loaded-banner .material-symbols-outlined { font-size: 16px; }
+
+    /* ======== 保存バー ======== */
+    .save-bar {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: #fff; border-top: 1px solid var(--gray-200);
+      padding: 12px 20px env(safe-area-inset-bottom, 12px);
+    }
+    .save-btn {
+      width: 100%; padding: 15px;
+      background: var(--brand-600); color: #fff;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.5px;
+    }
+    .save-btn:active { background: var(--brand-700); }
+    .save-btn:disabled { background: var(--gray-300); }
+    .save-status {
+      text-align: center; font-size: 12px; margin-top: 5px;
+      min-height: 16px; font-weight: 600;
+    }
+    .save-status.ok { color: #059669; }
+    .save-status.err { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="header" id="page-header">
+    <button class="header-back" onclick="history.back()">←</button>
+    <h1>出来事メモ</h1>
+  </div>
+
+  <div class="content dm-page">
+
+    <!-- 日付表示 -->
+    <div class="date-bar">
+      <span class="date-label" id="date-label">今日</span>
+      <div class="date-nav">
+        <button class="date-btn today" id="btn-today">今日</button>
+        <button class="date-btn" id="btn-yesterday">昨日</button>
+      </div>
+    </div>
+
+    <!-- 記録済みバナー -->
+    <div class="loaded-banner" id="loaded-banner">
+      <span class="material-symbols-outlined">check_circle</span>
+      <span id="loaded-text">この日の記録を読み込みました</span>
+    </div>
+
+    <!-- 固定タグ -->
+    <div class="section-title">タグをえらぶ（複数OK）</div>
+    <div class="tag-grid" id="tag-grid">
+      <button class="tag-btn" data-tag="天候">
+        <span class="tag-icon">🌧️</span>天候
+      </button>
+      <button class="tag-btn" data-tag="活動しすぎ">
+        <span class="tag-icon">🏃</span>活動しすぎ
+      </button>
+      <button class="tag-btn" data-tag="睡眠不足">
+        <span class="tag-icon">😴</span>睡眠不足
+      </button>
+      <button class="tag-btn" data-tag="ストレス">
+        <span class="tag-icon">😤</span>ストレス
+      </button>
+      <button class="tag-btn" data-tag="月経">
+        <span class="tag-icon">🩸</span>月経
+      </button>
+    </div>
+
+    <!-- 自由記述 + 音声ボタン -->
+    <div class="section-title">メモ（任意・音声入力できます）</div>
+    <div class="memo-wrap">
+      <textarea class="memo-textarea" id="memo-text"
+        placeholder="今日あったこと、気になったことを自由に書けます。&#10;例: 台風が来る前から肩が重かった、午後から少し楽に..."></textarea>
+      <button class="voice-badge" id="voice-btn">
+        <span class="material-symbols-outlined">mic</span>
+        <span id="voice-label">話す</span>
+      </button>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- 保存バー -->
+  <div class="save-bar">
+    <button class="save-btn" id="save-btn">きろくを保存</button>
+    <p class="save-status" id="save-status"></p>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script>
+    const TAGS = ["天候", "活動しすぎ", "睡眠不足", "ストレス", "月経"];
+    let selectedTags = new Set();
+    let targetDate = new Date().toISOString().slice(0, 10);
+    let recording = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    // ======== 日付管理 ========
+    function formatDateJa(dateStr) {
+      const d = new Date(dateStr + "T00:00:00");
+      const today = new Date().toISOString().slice(0, 10);
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const dayLabel = dateStr === today ? "（今日）" : dateStr === yesterday ? "（昨日）" : "";
+      return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日${dayLabel}`;
+    }
+
+    function setDate(dateStr) {
+      targetDate = dateStr;
+      document.getElementById("date-label").textContent = formatDateJa(dateStr);
+      loadExistingMemo();
+    }
+
+    document.getElementById("btn-today").addEventListener("click", () => {
+      setDate(new Date().toISOString().slice(0, 10));
+    });
+    document.getElementById("btn-yesterday").addEventListener("click", () => {
+      const d = new Date(Date.now() - 86400000);
+      setDate(d.toISOString().slice(0, 10));
+    });
+
+    // ======== タグ選択 ========
+    document.querySelectorAll(".tag-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tag = btn.dataset.tag;
+        if (selectedTags.has(tag)) {
+          selectedTags.delete(tag);
+          btn.classList.remove("selected");
+        } else {
+          selectedTags.add(tag);
+          btn.classList.add("selected");
+        }
+      });
+    });
+
+    function applyTags(tags) {
+      selectedTags = new Set(tags || []);
+      document.querySelectorAll(".tag-btn").forEach(btn => {
+        btn.classList.toggle("selected", selectedTags.has(btn.dataset.tag));
+      });
+    }
+
+    // ======== 既存データのロード ========
+    async function loadExistingMemo() {
+      const banner = document.getElementById("loaded-banner");
+      banner.classList.remove("show");
+      try {
+        const log = await apiGet(`/api/symptoms/today${targetDate !== new Date().toISOString().slice(0, 10) ? "" : ""}`);
+        // API は today のみ。過去分は暫定で空
+        if (log) {
+          if (log.note) document.getElementById("memo-text").value = log.note;
+          else document.getElementById("memo-text").value = "";
+          applyTags(log.tags || []);
+          if (log.note || (log.tags && log.tags.length)) {
+            document.getElementById("loaded-text").textContent = "この日の記録を読み込みました";
+            banner.classList.add("show");
+          }
+        } else {
+          document.getElementById("memo-text").value = "";
+          applyTags([]);
+        }
+      } catch (_) {
+        document.getElementById("memo-text").value = "";
+        applyTags([]);
+      }
+    }
+
+    // ======== 音声入力 ========
+    async function startVoice() {
+      const btn = document.getElementById("voice-btn");
+      const label = document.getElementById("voice-label");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          const blob = new Blob(audioChunks, { type: "audio/webm" });
+          label.textContent = "解析中...";
+          try {
+            const fd = new FormData();
+            fd.append("audio", blob, "memo.webm");
+            const res = await fetch("/api/ai/transcribe", { method: "POST", body: fd });
+            const data = await res.json().catch(() => ({}));
+            const transcript = (data.transcript || "").trim();
+            if (transcript) {
+              const ta = document.getElementById("memo-text");
+              ta.value = ta.value ? ta.value + "\n" + transcript : transcript;
+            }
+          } catch (err) {
+            console.error("transcribe error:", err);
+          } finally {
+            label.textContent = "話す";
+            btn.classList.remove("recording");
+            recording = false;
+          }
+        };
+        mediaRecorder.start();
+        recording = true;
+        btn.classList.add("recording");
+        label.textContent = "停止";
+      } catch (err) {
+        alert("マイクの許可が必要です: " + err.message);
+      }
+    }
+
+    function stopVoice() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+    }
+
+    document.getElementById("voice-btn").addEventListener("click", () => {
+      if (!recording) startVoice();
+      else stopVoice();
+    });
+
+    // ======== 保存 ========
+    document.getElementById("save-btn").addEventListener("click", async () => {
+      const btn = document.getElementById("save-btn");
+      const statusEl = document.getElementById("save-status");
+      btn.disabled = true;
+      statusEl.textContent = "保存中...";
+      statusEl.className = "save-status";
+      try {
+        const note = document.getElementById("memo-text").value.trim();
+        const tags = [...selectedTags];
+        await apiPost("/api/symptoms", {
+          date: targetDate,
+          note,
+          tags,
+        });
+        statusEl.textContent = "✓ きろくを保存しました";
+        statusEl.className = "save-status ok";
+        document.getElementById("loaded-banner").classList.add("show");
+        document.getElementById("loaded-text").textContent = "保存しました";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "保存に失敗しました";
+        statusEl.className = "save-status err";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ======== 初期化 ========
+    document.addEventListener("DOMContentLoaded", async () => {
+      await initLiff();
+      setDate(new Date().toISOString().slice(0, 10));
+    });
+  </script>
+</body>
+</html>
