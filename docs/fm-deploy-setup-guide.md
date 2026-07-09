@@ -77,6 +77,44 @@ Would you like to enable and retry (this will take a few minutes)? (y/N)?
 
 ---
 
+### 原因 G: `setup-fm-dev.sh` が ripgrep (`rg`) に依存していた（2026-07-10・2台目 Mac）
+
+| 症状 | 詳細 |
+|------|------|
+| スクリプト実行時にエラー | `./scripts/setup-fm-dev.sh: line 148: rg: command not found` |
+| 誤った判定 | API チェック・稼働確認が **実行されず**、実際には有効な API が「❌ 未有効」と表示される |
+| 環境 | Homebrew 未導入・`rg` 未インストールの macOS |
+
+**結論:** セットアップ確認スクリプトが **開発者向けツール（ripgrep）を必須** にしていたのが原因。macOS 標準の `grep` に置き換えて修正（コミット `896a569`）。
+
+---
+
+### 原因 H: API 有効判定が gcloud の出力形式と不一致（2026-07-10）
+
+| 症状 | 詳細 |
+|------|------|
+| API は有効なのに ❌ | `run.googleapis.com` 等が「未有効」と表示される |
+| 実際の gcloud 出力 | `projects/857539795793/services/run.googleapis.com`（フルパス） |
+| 旧ロジック | 短い名前 `run.googleapis.com` との **完全一致** のみを成功とみなしていた |
+
+**結論:** Cloud Run が既に稼働しているのにローカルチェックだけ失敗する **偽陽性**。フルパス末尾一致（`*${api}`）で判定するよう修正（コミット `896a569`）。
+
+---
+
+### 参考: 2台目 Mac で追加で必要だった環境整備（問題というより前提）
+
+Homebrew が無い環境では、以下を **手動で PATH に載せる** 必要がありました（`scripts/env-bootstrap.sh` でまとめて設定）。
+
+| 項目 | 内容 |
+|------|------|
+| Python 3.12 | `gcloud` が古い macOS 付属 Python で動かないため `CLOUDSDK_PYTHON` を指定 |
+| Node.js v20 | `npm install` / `npm run dev` 用（`~/.local/node-v20` 等） |
+| gcloud SDK | `~/google-cloud-sdk/bin` を PATH に追加 |
+| `.env` | `./scripts/sync-env-from-cloudrun.sh` で Cloud Run から `GEMINI_API_KEY` を同期（`.env.bak` が生成されるが **git に含めない**） |
+| gh CLI | **任意**（未インストールでも HTTPS で push 可能。警告のみ） |
+
+---
+
 ## 2. 本 PC で成功した条件（参考）
 
 以下が揃ったため、2026-07-09 にローカルデプロイが成功しました。
@@ -87,18 +125,35 @@ Would you like to enable and retry (this will take a few minutes)? (y/N)?
 4. 別リポジトリの `.env` から `GEMINI_API_KEY` を読み込み
 5. `./scripts/deploy-fm-test.sh` を実行
 
+### 2.1 2台目 Mac（2026-07-10）で成功した条件
+
+1. ポータブル Python 3.12 + Node v20 + gcloud SDK を `scripts/env-bootstrap.sh` で PATH 化
+2. `gcloud auth login k.soeda.mediforce@gmail.com` → プロジェクト `yorisoi-senikintsu-syndo` 設定
+3. `./scripts/sync-env-from-cloudrun.sh` で `.env` / `GEMINI_API_KEY` 同期
+4. `./scripts/setup-fm-dev.sh` 実行 — **原因 G・H 修正後** に全 ✅（gh CLI の ⚠️ のみ）
+5. 患者テスト URL で稼働確認済み（ローカル `npm run dev` も可）
+
+**患者テスト URL（確定）:**
+
+```
+https://yorisoi-phr-fm-test-o7flbqc5ka-an.a.run.app?disease=fm
+```
+
 ---
 
 ## 3. 別 PC セットアップ手順（推奨フロー）
 
 ### 3.1 前提ソフトウェア
 
+**Homebrew がある場合:**
+
 ```bash
-# Homebrew（macOS）の例
 brew install --cask google-cloud-sdk
-brew install gh
-brew install node@18   # ローカル開発時
+brew install gh          # 任意（HTTPS push なら不要）
+brew install node@20     # ローカル開発時
 ```
+
+**Homebrew が無い場合:** `scripts/env-bootstrap.sh` が gcloud / Node の PATH を設定します。Python 3.12 と gcloud SDK は各自 `~/.local/` 等に配置（詳細は §1 原因 G 付近の「参考: 2台目 Mac」表を参照）。
 
 ### 3.2 リポジトリ取得
 
@@ -158,7 +213,9 @@ source scripts/env-bootstrap.sh   # gcloud + Node の PATH を設定
 ./scripts/setup-fm-dev.sh
 ```
 
-すべて ✅ になればデプロイ可能です。
+すべて ✅ になればデプロイ可能です。`gh CLI がありません` は **警告のみ**（必須ではない）。
+
+**よくある誤判定（修正済み）:** `rg: command not found` や API「未有効」3件 → 最新の `feature/fm-photo-medication` を `git pull` して `./scripts/setup-fm-dev.sh` を再実行。
 
 ### 3.7 デプロイ
 
@@ -215,9 +272,13 @@ Repository → **Settings → Secrets and variables → Actions** に以下を�
 | 現象 | 対処 |
 |------|------|
 | `GCP_PROJECT_ID を設定してください` | `.env` を作るか `export GCP_PROJECT_ID=yorisoi-senikintsu-syndo` |
-| `GEMINI_API_KEY を設定してください` | `.env` にキーを設定 |
+| `GEMINI_API_KEY を設定してください` | `.env` にキーを設定、または `./scripts/sync-env-from-cloudrun.sh` |
 | プロジェクト一覧に FM プロジェクトが無い | `gcloud auth login k.soeda.mediforce@gmail.com` で再ログイン |
-| `(y/N)?` で止まる | `./scripts/setup-fm-dev.sh` で API を先に有効化 |
+| `(y/N)?` で止まる | `./scripts/setup-fm-dev.sh --fix-apis` または Owner で Console から API 有効化 |
+| `rg: command not found` | `git pull` 後 `./scripts/setup-fm-dev.sh` 再実行（`896a569` 以降は `grep` 使用） |
+| API 3件「未有効」だが Cloud Run は動いている | 同上（フルパス判定の修正済み）。手動確認: `gcloud services list --enabled --filter="name:run.googleapis.com"` |
+| `gcloud` が Python エラーで起動しない | `source scripts/env-bootstrap.sh`（`CLOUDSDK_PYTHON` 設定） |
+| `gh CLI がありません` | 無視可。CLI が欲しければ `brew install gh` |
 | GitHub push 403 | `gh auth switch --user Keeeeei-Soeda` |
 | CI が 0 秒で失敗 | ワークフロー YAML 構文を確認（最新版では heredoc 問題を修正済み） |
 | 写真抽出 503 | Cloud Run の `GEMINI_API_KEY` 環境変数を確認 |
@@ -243,3 +304,4 @@ Repository → **Settings → Secrets and variables → Actions** に以下を�
 | 日付 | 内容 |
 |------|------|
 | 2026-07-10 | 初版（別 PC 失敗原因の整理・セットアップ手順） |
+| 2026-07-10 | 2台目 Mac セットアップ問題（原因 G・H）とトラブルシューティング追記 |
