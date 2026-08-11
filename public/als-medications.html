@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>薬の記録 - よりそい ALS</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="header">
+    <button class="header-back" onclick="location.href='/?disease='+encodeURIComponent(getDiseaseId())+'&intent=skip'">&larr;</button>
+    <h1>薬の記録</h1>
+  </div>
+
+  <div class="content">
+    <div class="als-hint">登録済みの薬からチェックするだけで大丈夫です。自由入力は最小にしています。</div>
+    <div id="entered-by-mount"></div>
+
+    <div class="form-group">
+      <label class="form-label">日付</label>
+      <input type="date" class="form-input" id="log-date">
+    </div>
+
+    <div id="med-checks">
+      <div class="loading"><div class="loading-spinner"></div></div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-save" type="button" style="margin-top:12px;">チェックした薬を記録</button>
+
+    <div style="margin-top:20px;">
+      <button class="btn btn-outline" type="button" id="btn-add-from-master">リストに薬を追加</button>
+    </div>
+
+    <h2 style="font-size:14px;font-weight:700;color:var(--gray-600);margin:24px 0 8px;">最近の記録</h2>
+    <div id="log-list"></div>
+  </div>
+
+  <div class="done-overlay hidden" id="master-overlay" style="align-items:flex-end;">
+    <div style="background:#fff;border-radius:16px 16px 0 0;padding:18px;width:100%;max-width:430px;max-height:80vh;overflow-y:auto;">
+      <div class="flex-between mb-8">
+        <h2 style="font-size:16px;font-weight:700;">マスタから追加</h2>
+        <button type="button" id="master-close" style="background:none;border:none;font-size:22px;color:var(--gray-400);">&times;</button>
+      </div>
+      <div id="master-list"></div>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script src="/js/als-common.js"></script>
+  <script>
+    let meds = [];
+    let master = null;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await initLiff();
+        mountEnteredByToggle(document.getElementById("entered-by-mount"));
+        document.getElementById("log-date").value = new Date().toISOString().slice(0, 10);
+        meds = (await apiGet("/api/medications")).filter((m) => m.isActive !== false);
+        master = await apiGet("/api/master/medications");
+        renderChecks();
+        await renderLogs();
+        document.getElementById("btn-save").addEventListener("click", saveLog);
+        document.getElementById("btn-add-from-master").addEventListener("click", openMaster);
+        document.getElementById("master-close").addEventListener("click", () => {
+          document.getElementById("master-overlay").classList.add("hidden");
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById("med-checks").innerHTML = '<p class="text-sm" style="color:var(--danger)">読み込み失敗</p>';
+      }
+    });
+
+    function renderChecks() {
+      const el = document.getElementById("med-checks");
+      if (!meds.length) {
+        el.innerHTML = '<p class="text-sm text-muted">まだ登録がありません。「リストに薬を追加」から選んでください。</p>';
+        return;
+      }
+      el.innerHTML = meds.map((m) => `
+        <label class="als-check-item">
+          <input type="checkbox" value="${escapeHtml(m.id)}">
+          <span>
+            <strong>${escapeHtml(m.brandName || m.name || m.genericName)}</strong>
+            <span class="text-sm text-muted" style="display:block;">${escapeHtml(m.genericName || "")}</span>
+          </span>
+        </label>`).join("");
+      el.querySelectorAll(".als-check-item").forEach((row) => {
+        const input = row.querySelector("input");
+        const sync = () => row.classList.toggle("selected", input.checked);
+        input.addEventListener("change", sync);
+        row.addEventListener("click", (e) => {
+          if (e.target.tagName !== "INPUT") {
+            input.checked = !input.checked;
+            sync();
+          }
+        });
+      });
+    }
+
+    async function saveLog() {
+      const date = document.getElementById("log-date").value;
+      const medicationIds = [...document.querySelectorAll("#med-checks input:checked")].map((i) => i.value);
+      if (!medicationIds.length) { alert("1つ以上チェックしてください"); return; }
+      try {
+        await apiPost("/api/medication-logs", {
+          date,
+          medicationIds,
+          entered_by: getEnteredBy(),
+        });
+        document.querySelectorAll("#med-checks input").forEach((i) => {
+          i.checked = false;
+          i.closest(".als-check-item")?.classList.remove("selected");
+        });
+        await renderLogs();
+      } catch (err) {
+        alert("保存に失敗しました");
+      }
+    }
+
+    async function renderLogs() {
+      const logs = await apiGet("/api/medication-logs");
+      const el = document.getElementById("log-list");
+      if (!logs.length) {
+        el.innerHTML = '<p class="text-sm text-muted">まだ記録がありません。</p>';
+        return;
+      }
+      const nameOf = (id) => {
+        const m = meds.find((x) => x.id === id);
+        return m ? (m.brandName || m.name || m.genericName) : id;
+      };
+      el.innerHTML = logs.slice(0, 20).map((l) => `
+        <div class="card" style="padding:12px 14px;margin-bottom:8px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(l.date)}</strong>
+            <span class="text-sm text-muted">${escapeHtml(enteredByLabel(l.entered_by))}</span>
+          </div>
+          <div class="text-sm" style="margin-top:6px;">${escapeHtml((l.medicationIds || []).map(nameOf).join("、"))}</div>
+        </div>`).join("");
+    }
+
+    function openMaster() {
+      const list = document.getElementById("master-list");
+      const items = master?.medications || [];
+      list.innerHTML = items.map((m, idx) => `
+        <button type="button" class="btn btn-outline" data-idx="${idx}" style="margin-bottom:8px;text-align:left;">
+          ${escapeHtml(m.brandNames?.[0] || m.genericName)}
+          <span class="text-sm text-muted" style="display:block;">${escapeHtml(m.genericName)}</span>
+        </button>`).join("");
+      list.querySelectorAll("[data-idx]").forEach((btn) => {
+        btn.addEventListener("click", () => addFromMaster(items[Number(btn.dataset.idx)]));
+      });
+      document.getElementById("master-overlay").classList.remove("hidden");
+    }
+
+    async function addFromMaster(m) {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        await apiPost("/api/medications", {
+          brandName: m.brandNames?.[0] || m.genericName,
+          name: m.brandNames?.[0] || m.genericName,
+          genericName: m.genericName,
+          category: m.category || "other",
+          dosageForm: m.dosageForms?.[0] || "経口",
+          dosageType: "regular",
+          startDate: today,
+          isActive: true,
+          source: "manual",
+          entered_by: getEnteredBy(),
+        });
+        document.getElementById("master-overlay").classList.add("hidden");
+        meds = (await apiGet("/api/medications")).filter((x) => x.isActive !== false);
+        renderChecks();
+      } catch (err) {
+        alert("追加に失敗しました: " + (err.message || err));
+      }
+    }
+  </script>
+</body>
+</html>

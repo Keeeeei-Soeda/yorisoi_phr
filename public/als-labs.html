@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>検査値の記録 - よりそい ALS</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="header">
+    <button class="header-back" onclick="goHome()">&larr;</button>
+    <h1>検査値の記録</h1>
+  </div>
+
+  <div class="content">
+    <div class="als-hint" id="lab-intro">
+      リルゾール／エダラボンの服薬安全確認用です。全部入れなくて大丈夫。写真は確認してから保存します。
+    </div>
+    <div id="entered-by-mount"></div>
+
+    <div class="card" style="border:none;background:linear-gradient(135deg,#ecfdf5,#d1fae5);margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:8px;">写真から読み取り</div>
+      <p style="font-size:12px;color:#047857;margin-bottom:10px;line-height:1.5;">氏名・患者番号・施設名は隠してから撮ってください。読み取り後、必ず確認します。</p>
+      <button class="btn btn-primary" id="btn-scan" type="button">検査値表を撮影 / 選択</button>
+      <button class="btn btn-outline" id="btn-revoke-consent" type="button" style="margin-top:8px;font-size:12px;">OCR同意を撤回</button>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">体重・SpO2（手入力）</div>
+      <p class="text-sm text-muted" style="margin-bottom:10px;">検査表に載らないことが多い指標です。1〜2個だけどうぞ。</p>
+      <div class="form-group">
+        <label class="form-label">測定日</label>
+        <input type="date" class="form-input" id="vital-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">体重 (kg)</label>
+        <input type="number" step="0.1" class="form-input" id="vital-weight" placeholder="例: 58.2">
+      </div>
+      <div class="form-group">
+        <label class="form-label">SpO2 (%)</label>
+        <input type="number" step="1" min="0" max="100" class="form-input" id="vital-spo2" placeholder="例: 97">
+      </div>
+      <button class="btn btn-outline" id="btn-save-vital" type="button">体重・SpO2を保存</button>
+    </div>
+
+    <h2 style="font-size:14px;font-weight:700;color:var(--gray-600);margin:8px 0;">これまでの検査値</h2>
+    <div id="lab-list"><div class="loading"><div class="loading-spinner"></div></div></div>
+
+    <h2 style="font-size:14px;font-weight:700;color:var(--gray-600);margin:20px 0 8px;">体重・SpO2</h2>
+    <div id="vital-list"></div>
+  </div>
+
+  <!-- 確認パネル（silent auto-commit 禁止） -->
+  <div class="done-overlay hidden" id="confirm-overlay" style="align-items:flex-end;">
+    <div style="background:var(--white);border-radius:16px 16px 0 0;padding:18px;width:100%;max-width:430px;max-height:92vh;overflow-y:auto;">
+      <div class="flex-between mb-8">
+        <h2 style="font-size:17px;font-weight:700;">読み取り結果の確認</h2>
+        <button type="button" style="background:none;border:none;font-size:22px;color:var(--gray-400);cursor:pointer;" id="confirm-close">&times;</button>
+      </div>
+      <p class="text-sm text-muted" style="margin-bottom:12px;">写真と数値を見比べて、正しければ確定してください。その場で編集もできます。</p>
+      <div class="als-confirm-grid">
+        <img id="confirm-photo" alt="検査値表写真">
+        <div>
+          <div class="form-group">
+            <label class="form-label">検査日</label>
+            <input type="date" class="form-input" id="confirm-date">
+          </div>
+          <div id="confirm-fields"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-confirm-save" type="button">確認して保存</button>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script src="/js/photo-upload.js"></script>
+  <script src="/js/als-common.js"></script>
+  <script>
+    let labItems = [];
+    let pendingPhoto = null;
+    let labResults = [];
+    let vitals = [];
+
+    function goHome() {
+      location.href = "/?disease=" + encodeURIComponent(getDiseaseId()) + "&intent=skip";
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const { template } = await initLiff();
+        if (template.labConfig?.subtitle) {
+          document.getElementById("lab-intro").textContent = template.labConfig.subtitle;
+        }
+        labItems = template.labConfig?.items || [];
+        mountEnteredByToggle(document.getElementById("entered-by-mount"));
+        document.getElementById("vital-date").value = new Date().toISOString().slice(0, 10);
+        await refresh();
+        document.getElementById("btn-scan").addEventListener("click", startScan);
+        document.getElementById("btn-save-vital").addEventListener("click", saveVital);
+        document.getElementById("btn-confirm-save").addEventListener("click", confirmSave);
+        document.getElementById("confirm-close").addEventListener("click", () => {
+          document.getElementById("confirm-overlay").classList.add("hidden");
+          pendingPhoto = null;
+        });
+        document.getElementById("btn-revoke-consent").addEventListener("click", () => {
+          setLabOcrConsent(false);
+          alert("同意を撤回しました。次回の読み取り前に再度確認します。");
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById("lab-list").innerHTML = '<p class="text-sm" style="color:var(--danger)">読み込みに失敗しました</p>';
+      }
+    });
+
+    async function refresh() {
+      labResults = await apiGet("/api/labs");
+      vitals = await apiGet("/api/vitals");
+      renderLabs();
+      renderVitals();
+    }
+
+    async function startScan() {
+      const ok = await ensureLabOcrConsent();
+      if (!ok) return;
+      showPhotoPicker({
+        onSelect: async (dataUri) => {
+          const btn = document.getElementById("btn-scan");
+          btn.disabled = true;
+          btn.textContent = "読み取り中...";
+          try {
+            const res = await apiPost("/api/ai/scan-lab", { image: dataUri, diseaseId: getDiseaseId() });
+            openConfirm(dataUri, res);
+          } catch (err) {
+            alert("読み取りに失敗しました: " + (err.message || err));
+          } finally {
+            btn.disabled = false;
+            btn.textContent = "検査値表を撮影 / 選択";
+          }
+        },
+      });
+    }
+
+    function openConfirm(photo, res) {
+      pendingPhoto = photo;
+      document.getElementById("confirm-photo").src = photo;
+      document.getElementById("confirm-date").value =
+        res.exam_date || res.date || new Date().toISOString().slice(0, 10);
+      const values = res.values || {};
+      document.getElementById("confirm-fields").innerHTML = labItems.map((item) => `
+        <div class="form-group">
+          <label class="form-label">${escapeHtml(item.label)} (${escapeHtml(item.unit)})</label>
+          <input type="number" step="any" class="form-input" data-lab-id="${escapeHtml(item.id)}"
+            value="${values[item.id] != null ? values[item.id] : ""}" placeholder="空欄可">
+        </div>`).join("");
+      document.getElementById("confirm-overlay").classList.remove("hidden");
+    }
+
+    async function confirmSave() {
+      const date = document.getElementById("confirm-date").value;
+      if (!date) { alert("検査日を入力してください"); return; }
+      const values = {};
+      document.querySelectorAll("[data-lab-id]").forEach((input) => {
+        if (input.value !== "") values[input.dataset.labId] = parseFloat(input.value);
+      });
+      const btn = document.getElementById("btn-confirm-save");
+      btn.disabled = true;
+      try {
+        await apiPost("/api/labs", {
+          date,
+          values,
+          photo: pendingPhoto,
+          source: "ocr",
+          confirmed: true,
+          entered_by: getEnteredBy(),
+        });
+        pendingPhoto = null;
+        document.getElementById("confirm-overlay").classList.add("hidden");
+        await refresh();
+      } catch (err) {
+        alert("保存に失敗しました: " + (err.message || err));
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function saveVital() {
+      const measured_date = document.getElementById("vital-date").value;
+      const weight_kg = document.getElementById("vital-weight").value;
+      const spo2_percent = document.getElementById("vital-spo2").value;
+      if (!measured_date) { alert("測定日を入力してください"); return; }
+      if (!weight_kg && !spo2_percent) { alert("体重か SpO2 を入力してください"); return; }
+      try {
+        await apiPost("/api/vitals", {
+          measured_date,
+          weight_kg: weight_kg || null,
+          spo2_percent: spo2_percent || null,
+          entered_by: getEnteredBy(),
+        });
+        document.getElementById("vital-weight").value = "";
+        document.getElementById("vital-spo2").value = "";
+        await refresh();
+      } catch (err) {
+        alert("保存に失敗しました: " + (err.message || err));
+      }
+    }
+
+    function renderLabs() {
+      const el = document.getElementById("lab-list");
+      if (!labResults.length) {
+        el.innerHTML = '<p class="text-sm text-muted">まだありません。写真から読み取るか、あとで追加できます。</p>';
+        return;
+      }
+      el.innerHTML = labResults.map((r) => {
+        const parts = labItems
+          .filter((i) => r.values?.[i.id] != null)
+          .map((i) => `${i.label} ${r.values[i.id]}${i.unit}`)
+          .join(" · ");
+        const by = enteredByLabel(r.entered_by);
+        return `<div class="card" style="margin-bottom:8px;padding:12px 14px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(r.date || "")}</strong>
+            <span class="text-sm text-muted">${escapeHtml(by)}${r.photo ? " · 写真あり" : ""}</span>
+          </div>
+          <div class="text-sm" style="margin-top:6px;line-height:1.5;">${escapeHtml(parts || "（数値なし）")}</div>
+        </div>`;
+      }).join("");
+    }
+
+    function renderVitals() {
+      const el = document.getElementById("vital-list");
+      if (!vitals.length) {
+        el.innerHTML = '<p class="text-sm text-muted">まだありません。</p>';
+        return;
+      }
+      el.innerHTML = vitals.map((v) => {
+        const bits = [];
+        if (v.weight_kg != null) bits.push(`体重 ${v.weight_kg} kg`);
+        if (v.spo2_percent != null) bits.push(`SpO2 ${v.spo2_percent}%`);
+        return `<div class="card" style="margin-bottom:8px;padding:12px 14px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(v.measured_date || "")}</strong>
+            <span class="text-sm text-muted">${escapeHtml(enteredByLabel(v.entered_by))}</span>
+          </div>
+          <div class="text-sm" style="margin-top:6px;">${escapeHtml(bits.join(" · "))}</div>
+        </div>`;
+      }).join("");
+    }
+  </script>
+</body>
+</html>

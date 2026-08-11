@@ -100,6 +100,18 @@ if (DEMO_MODE) {
   app.use("/api/visits", visitsRoutes);
   app.use("/api/clinics", clinicsRoutes);
 
+  // ALS 関連（検査値・バイタル・服薬ログ・診察・自己負担）
+  const labsRoutes = require("./routes/labs");
+  const vitalsRoutes = require("./routes/vitals");
+  const medicationLogsRoutes = require("./routes/medication-logs");
+  const consultationsRoutes = require("./routes/consultations");
+  const copayRoutes = require("./routes/copay");
+  app.use("/api/labs", labsRoutes);
+  app.use("/api/vitals", vitalsRoutes);
+  app.use("/api/medication-logs", medicationLogsRoutes);
+  app.use("/api/consultations", consultationsRoutes);
+  app.use("/api/copay", copayRoutes);
+
   // 薬剤マスタ（認証不要の公開エンドポイント）
   app.get("/api/master/medications", (_req, res) => {
     const master = require("../data/medication-master.json");

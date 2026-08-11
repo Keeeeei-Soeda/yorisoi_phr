@@ -98,14 +98,12 @@ router.get("/active", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const brandName = req.body.brandName || req.body.name;
-    const { category, startDate } = req.body;
+    const { startDate } = req.body;
 
     if (!brandName || !startDate) {
       return res.status(400).json({ error: "name (or brandName) and startDate are required" });
     }
-    if (category && !VALID_CATEGORIES.includes(category)) {
-      return res.status(400).json({ error: "Invalid category" });
-    }
+    // category は疾患マスタ依存のため自由文字列を許容
     if (req.body.dosageType && !VALID_DOSAGE_TYPES.includes(req.body.dosageType)) {
       return res.status(400).json({ error: "Invalid dosageType" });
     }

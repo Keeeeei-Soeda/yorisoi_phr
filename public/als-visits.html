@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>診察の記録 - よりそい ALS</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" />
+  <style>
+    .voice-area { text-align: center; padding: 8px 0 16px; }
+    .voice-btn {
+      width: 160px; height: 160px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand-400, #f4a7b0), var(--brand-600));
+      color: #fff; border: none; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(244,167,176,0.4);
+      display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; transition: all 0.15s;
+    }
+    .voice-btn:active { transform: scale(0.96); }
+    .voice-btn .material-symbols-outlined { font-size: 56px; }
+    .voice-btn .label { font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+    .voice-btn.recording {
+      background: linear-gradient(135deg, #fca5a5, #dc2626);
+      animation: als-pulse 1.4s infinite;
+    }
+    .voice-btn:disabled { opacity: 0.7; cursor: wait; }
+    @keyframes als-pulse {
+      0%,100% { box-shadow: 0 8px 24px rgba(220,38,38,0.4); }
+      50% { box-shadow: 0 8px 32px rgba(220,38,38,0.7); }
+    }
+    .voice-hint { font-size: 12px; color: var(--gray-500); margin-top: 12px; line-height: 1.5; }
+    .or-divider {
+      text-align: center; font-size: 12px; color: var(--gray-400);
+      padding: 4px 0 14px; position: relative;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ""; display: inline-block;
+      width: 48px; height: 1px; background: var(--gray-200);
+      vertical-align: middle; margin: 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="header-back" onclick="location.href='/?disease='+encodeURIComponent(getDiseaseId())+'&intent=skip'">&larr;</button>
+    <h1>診察の記録</h1>
+  </div>
+
+  <div class="content">
+    <div class="als-hint">
+      診察中に話したことを音声で残せます。あとでAIが「次回聞きたいこと」に整えます。手入力だけでも大丈夫です。
+    </div>
+    <div id="entered-by-mount"></div>
+
+    <div class="form-group">
+      <label class="form-label">診察日</label>
+      <input type="date" class="form-input" id="visit-date">
+    </div>
+
+    <div class="voice-area">
+      <button class="voice-btn" id="voice-btn" type="button">
+        <span class="material-symbols-outlined">mic</span>
+        <span class="label" id="voice-label">押して話す</span>
+      </button>
+      <div class="voice-hint" id="voice-hint">診察中の会話や、聞きたいことを話してください</div>
+    </div>
+
+    <div class="or-divider">または手入力</div>
+
+    <div class="form-group">
+      <label class="form-label">次回聞きたいことメモ</label>
+      <textarea class="form-input" id="visit-memo" rows="5" placeholder="例: 呼吸リハビリの頻度、栄養について"></textarea>
+    </div>
+    <button class="btn btn-primary" id="btn-save" type="button">保存する</button>
+
+    <h2 style="font-size:14px;font-weight:700;color:var(--gray-600);margin:24px 0 8px;">これまでのメモ</h2>
+    <div id="list"></div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script src="/js/visit-recorder.js"></script>
+  <script src="/js/als-common.js"></script>
+  <script>
+    let recording = false;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await initLiff();
+        mountEnteredByToggle(document.getElementById("entered-by-mount"));
+        document.getElementById("visit-date").value = new Date().toISOString().slice(0, 10);
+        document.getElementById("btn-save").addEventListener("click", save);
+        document.getElementById("voice-btn").addEventListener("click", onVoiceClick);
+        await render();
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    async function onVoiceClick() {
+      const btn = document.getElementById("voice-btn");
+      const label = document.getElementById("voice-label");
+      const hint = document.getElementById("voice-hint");
+      try {
+        if (!recording) {
+          await VisitRecorder.startRecording();
+          recording = true;
+          btn.classList.add("recording");
+          label.textContent = "話しています...";
+          hint.textContent = "もう一度タップで停止します";
+          return;
+        }
+
+        label.textContent = "書き起こし中...";
+        btn.disabled = true;
+        const blob = await VisitRecorder.stopRecording();
+        recording = false;
+        btn.classList.remove("recording");
+
+        const result = await VisitRecorder.transcribeBlob(blob);
+        const transcript = (result.transcript || "").trim();
+        if (!transcript) {
+          hint.textContent = "声が聞き取れませんでした。もう一度試してください。";
+          label.textContent = "押して話す";
+          btn.disabled = false;
+          return;
+        }
+
+        label.textContent = "整えています...";
+        hint.textContent = "AIがメモに整理しています";
+        const visitDate = document.getElementById("visit-date").value;
+        let memoText = transcript;
+        try {
+          const parsed = await VisitRecorder.parseVisitText(transcript, visitDate);
+          const parts = [];
+          if (parsed.nextActionDraft) parts.push(parsed.nextActionDraft);
+          if (parsed.findings) parts.push("【言われたこと】\n" + parsed.findings);
+          if (parts.length) memoText = parts.join("\n\n");
+        } catch (parseErr) {
+          console.warn("parse-visit fallback to transcript:", parseErr);
+        }
+
+        const ta = document.getElementById("visit-memo");
+        ta.value = ta.value.trim() ? (ta.value.trim() + "\n\n" + memoText) : memoText;
+        hint.textContent = "書き起こしてメモに入れました。必要なら直して保存してください。";
+        label.textContent = "押して話す";
+        btn.disabled = false;
+      } catch (err) {
+        console.error(err);
+        recording = false;
+        btn.classList.remove("recording");
+        btn.disabled = false;
+        label.textContent = "押して話す";
+        hint.textContent = "マイクの許可が必要です: " + (err.message || err);
+      }
+    }
+
+    async function save() {
+      const date = document.getElementById("visit-date").value;
+      const memo = document.getElementById("visit-memo").value.trim();
+      if (!date) { alert("日付を入力してください"); return; }
+      if (!memo) { alert("メモを入力するか、音声で話してください"); return; }
+      try {
+        await apiPost("/api/consultations", {
+          date,
+          memo,
+          entered_by: getEnteredBy(),
+        });
+        document.getElementById("visit-memo").value = "";
+        document.getElementById("voice-hint").textContent =
+          "診察中の会話や、聞きたいことを話してください";
+        await render();
+      } catch (err) {
+        alert("保存に失敗しました");
+      }
+    }
+
+    async function render() {
+      const items = await apiGet("/api/consultations");
+      const el = document.getElementById("list");
+      if (!items.length) {
+        el.innerHTML = '<p class="text-sm text-muted">まだありません。</p>';
+        return;
+      }
+      el.innerHTML = items.map((c) => `
+        <div class="card" style="padding:12px 14px;margin-bottom:8px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(c.date)}</strong>
+            <span class="text-sm text-muted">${escapeHtml(enteredByLabel(c.entered_by))}</span>
+          </div>
+          <div class="text-sm" style="margin-top:8px;white-space:pre-wrap;line-height:1.6;">${escapeHtml(c.memo || "（メモなし）")}</div>
+        </div>`).join("");
+    }
+  </script>
+</body>
+</html>

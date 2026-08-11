@@ -635,6 +635,100 @@ const DEMO_DATA = {
       { id: "v1", date: "2026-02-01", clinicId: "c1", department: "リウマチ科", doctor: "渋谷 花", chiefComplaint: "疼痛は安定、疲労が残る", findings: "広範囲疼痛は中等度。睡眠は改善傾向。CRP正常。", nextAction: "現薬継続。次回2ヶ月後。", photos: [], relatedMedicationIds: ["m1", "m2"], relatedLabResultIds: ["l1"], relatedTimelineEventId: null },
     ],
   },
+
+  als: {
+    profile: {
+      displayName: "デモユーザー",
+      diagnosisName: "ALS（筋萎縮性側索硬化症）",
+      diagnosisDate: "2024-06-01",
+      diseaseId: "als",
+    },
+    timeline: [
+      { id: "ev1", date: "2024-06-01", category: "diagnosis", title: "ALS と診断", detail: "神経内科にて確定。", source: "manual" },
+      { id: "ev2", date: "2024-06-15", category: "medication_change", title: "リルゾール開始", detail: "50mg 1日2回。肝機能モニタリング開始。", source: "manual" },
+    ],
+    medications: [
+      {
+        id: "m1",
+        name: "リルゾール錠50mg",
+        brandName: "リルゾール錠50mg",
+        genericName: "リルゾール",
+        category: "disease_modifying",
+        dosageForm: "経口",
+        strength: "50mg",
+        dosageType: "regular",
+        timing: ["朝食後", "夕食後"],
+        dosePerTime: "1錠",
+        prnCondition: null,
+        note: "肝機能に注意",
+        source: "manual",
+        startDate: "2024-06-15",
+        endDate: null,
+        isActive: true,
+        changeReason: "初回処方",
+        sideNotes: "50mg 朝・夕"
+      },
+      {
+        id: "m2",
+        name: "ラジカット",
+        brandName: "ラジカット",
+        genericName: "エダラボン",
+        category: "disease_modifying",
+        dosageForm: "点滴",
+        strength: null,
+        dosageType: "regular",
+        timing: [],
+        dosePerTime: null,
+        prnCondition: null,
+        note: "サイクル管理は Phase 2",
+        source: "manual",
+        startDate: "2025-01-10",
+        endDate: null,
+        isActive: true,
+        changeReason: "追加",
+        sideNotes: "点滴"
+      },
+    ],
+    labResults: [
+      {
+        id: "l1",
+        date: "2026-07-01",
+        values: { ALT: 28, AST: 24, GGT: 30, ALP: 210, CK: 180, Alb: 4.1, Cr: 0.7 },
+        photo: null,
+        entered_by: "caregiver",
+        source: "manual",
+        confirmed: true,
+      },
+    ],
+    vitals: [
+      { id: "vt1", measured_date: "2026-08-01", weight_kg: 58.2, spo2_percent: 97, entered_by: "caregiver" },
+    ],
+    medicationLogs: [
+      { id: "ml1", date: "2026-08-09", medicationIds: ["m1"], note: "", entered_by: "caregiver" },
+    ],
+    consultations: [
+      { id: "cs1", date: "2026-07-15", memo: "次回、呼吸リハビリの頻度を聞きたい", entered_by: "caregiver" },
+    ],
+    copayCertificate: {
+      id: "cc1",
+      income_category: "C1",
+      monthly_cap_yen: 10000,
+      valid_from: "2026-04-01",
+      valid_to: "2027-03-31",
+      cert_number: "",
+    },
+    copayLedgers: [
+      { id: "cl1", certificate_id: "cc1", year_month: "2026-08" },
+    ],
+    copayEntries: [
+      { id: "ce1", monthly_ledger_id: "cl1", date: "2026-08-03", facility_type: "hospital", facility_name: "○○病院", self_pay_yen: 3200, entered_by: "caregiver" },
+      { id: "ce2", monthly_ledger_id: "cl1", date: "2026-08-03", facility_type: "pharmacy", facility_name: "", self_pay_yen: 1800, entered_by: "caregiver" },
+    ],
+    clinics: [
+      { id: "c1", name: "○○神経内科クリニック", address: "", phone: "", departments: ["神経内科"], isPrimary: true, note: "" },
+    ],
+    visits: [],
+  },
 };
 
 // ========================================
@@ -649,8 +743,22 @@ function getData(diseaseId) {
   const data = DEMO_DATA[diseaseId] || DEMO_DATA.uc;
   if (!data.clinics) data.clinics = [];
   if (!data.visits) data.visits = [];
+  if (!data.labResults) data.labResults = [];
+  if (!data.vitals) data.vitals = [];
+  if (!data.medicationLogs) data.medicationLogs = [];
+  if (!data.consultations) data.consultations = [];
+  if (!data.copayLedgers) data.copayLedgers = [];
+  if (!data.copayEntries) data.copayEntries = [];
   return data;
 }
+
+function normalizeEnteredBy(v) {
+  return v === "caregiver" ? "caregiver" : "self";
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const YM_RE = /^\d{4}-\d{2}$/;
+const FACILITY_TYPES = new Set(["hospital", "pharmacy", "home_nurse", "other"]);
 
 function generateSymptomLogs(diseaseId) {
   const logs = [];
@@ -808,10 +916,199 @@ router.get("/api/labs", (req, res) => {
 });
 router.post("/api/labs", (req, res) => {
   const data = getData(getDiseaseId(req));
-  const entry = { id: "l" + Date.now(), ...req.body };
+  const body = req.body || {};
+  if (body.source === "ocr" && body.confirmed !== true) {
+    return res.status(400).json({ error: "OCR results must be confirmed before save" });
+  }
+  const entry = {
+    id: "l" + Date.now(),
+    date: body.date,
+    values: body.values || {},
+    photo: body.photo || null,
+    entered_by: normalizeEnteredBy(body.entered_by),
+    source: body.source === "ocr" ? "ocr" : "manual",
+    confirmed: body.confirmed === true || body.source !== "ocr",
+  };
   if (!data.labResults) data.labResults = [];
   data.labResults.unshift(entry);
   res.status(201).json(entry);
+});
+router.delete("/api/labs/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = (data.labResults || []).findIndex((l) => l.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  data.labResults.splice(idx, 1);
+  res.json({ deleted: true });
+});
+
+// ALS: 体重・SpO2
+router.get("/api/vitals", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  res.json([...(data.vitals || [])].sort((a, b) => (b.measured_date || "").localeCompare(a.measured_date || "")));
+});
+router.post("/api/vitals", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const { measured_date, weight_kg, spo2_percent, entered_by } = req.body || {};
+  if (!measured_date || !DATE_RE.test(measured_date)) {
+    return res.status(400).json({ error: "measured_date (YYYY-MM-DD) is required" });
+  }
+  const weight = weight_kg != null && weight_kg !== "" ? parseFloat(weight_kg) : null;
+  const spo2 = spo2_percent != null && spo2_percent !== "" ? parseFloat(spo2_percent) : null;
+  if (weight == null && spo2 == null) {
+    return res.status(400).json({ error: "weight_kg or spo2_percent required" });
+  }
+  const entry = {
+    id: "vt" + Date.now(),
+    measured_date,
+    weight_kg: weight != null && !Number.isNaN(weight) ? weight : null,
+    spo2_percent: spo2 != null && !Number.isNaN(spo2) ? spo2 : null,
+    entered_by: normalizeEnteredBy(entered_by),
+  };
+  data.vitals.unshift(entry);
+  res.status(201).json(entry);
+});
+router.delete("/api/vitals/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = data.vitals.findIndex((v) => v.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  data.vitals.splice(idx, 1);
+  res.json({ deleted: true });
+});
+
+// ALS: 服薬ログ
+router.get("/api/medication-logs", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  let logs = [...(data.medicationLogs || [])];
+  if (req.query.date) logs = logs.filter((l) => l.date === req.query.date);
+  res.json(logs.sort((a, b) => (b.date || "").localeCompare(a.date || "")));
+});
+router.post("/api/medication-logs", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const { date, medicationIds, entered_by, note } = req.body || {};
+  if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date required" });
+  const ids = Array.isArray(medicationIds) ? medicationIds.filter(Boolean) : [];
+  if (!ids.length) return res.status(400).json({ error: "medicationIds required" });
+  const entry = {
+    id: "ml" + Date.now(),
+    date,
+    medicationIds: ids,
+    note: typeof note === "string" ? note.slice(0, 200) : "",
+    entered_by: normalizeEnteredBy(entered_by),
+  };
+  data.medicationLogs.unshift(entry);
+  res.status(201).json(entry);
+});
+router.delete("/api/medication-logs/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = data.medicationLogs.findIndex((l) => l.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  data.medicationLogs.splice(idx, 1);
+  res.json({ deleted: true });
+});
+
+// ALS: 診察メモ
+router.get("/api/consultations", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  res.json([...(data.consultations || [])].sort((a, b) => (b.date || "").localeCompare(a.date || "")));
+});
+router.post("/api/consultations", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const { date, memo, entered_by } = req.body || {};
+  if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date required" });
+  const entry = {
+    id: "cs" + Date.now(),
+    date,
+    memo: typeof memo === "string" ? memo.slice(0, 2000) : "",
+    entered_by: normalizeEnteredBy(entered_by),
+  };
+  data.consultations.unshift(entry);
+  res.status(201).json(entry);
+});
+router.delete("/api/consultations/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = data.consultations.findIndex((c) => c.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  data.consultations.splice(idx, 1);
+  res.json({ deleted: true });
+});
+
+// ALS: 自己負担上限額管理票
+router.get("/api/copay/certificate", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  res.json(data.copayCertificate || null);
+});
+router.post("/api/copay/certificate", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const cap = parseInt(req.body.monthly_cap_yen, 10);
+  if (Number.isNaN(cap) || cap < 0) return res.status(400).json({ error: "monthly_cap_yen required" });
+  data.copayCertificate = {
+    id: data.copayCertificate?.id || "cc" + Date.now(),
+    income_category: req.body.income_category || "",
+    monthly_cap_yen: cap,
+    valid_from: req.body.valid_from || null,
+    valid_to: req.body.valid_to || null,
+    cert_number: req.body.cert_number || "",
+  };
+  res.json(data.copayCertificate);
+});
+router.get("/api/copay/month/:yearMonth", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const yearMonth = req.params.yearMonth;
+  if (!YM_RE.test(yearMonth)) return res.status(400).json({ error: "yearMonth must be YYYY-MM" });
+  const certificate = data.copayCertificate || null;
+  let ledger = (data.copayLedgers || []).find((l) => l.year_month === yearMonth) || null;
+  const entries = ledger
+    ? (data.copayEntries || [])
+        .filter((e) => e.monthly_ledger_id === ledger.id)
+        .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    : [];
+  const total = entries.reduce((s, e) => s + (e.self_pay_yen || 0), 0);
+  const cap = certificate?.monthly_cap_yen ?? null;
+  res.json({
+    year_month: yearMonth,
+    certificate,
+    ledger,
+    entries,
+    total_yen: total,
+    remaining_yen: cap == null ? null : Math.max(0, cap - total),
+    cap_reached: cap != null && total >= cap,
+  });
+});
+router.post("/api/copay/entries", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const { date, facility_type, facility_name, self_pay_yen, entered_by, year_month } = req.body || {};
+  if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date required" });
+  if (!FACILITY_TYPES.has(facility_type)) return res.status(400).json({ error: "invalid facility_type" });
+  const yen = parseInt(self_pay_yen, 10);
+  if (Number.isNaN(yen) || yen < 0) return res.status(400).json({ error: "self_pay_yen required" });
+  const ym = year_month && YM_RE.test(year_month) ? year_month : date.slice(0, 7);
+  let ledger = (data.copayLedgers || []).find((l) => l.year_month === ym);
+  if (!ledger) {
+    ledger = {
+      id: "cl" + Date.now(),
+      certificate_id: data.copayCertificate?.id || null,
+      year_month: ym,
+    };
+    data.copayLedgers.push(ledger);
+  }
+  const entry = {
+    id: "ce" + Date.now(),
+    monthly_ledger_id: ledger.id,
+    date,
+    facility_type,
+    facility_name: typeof facility_name === "string" ? facility_name.slice(0, 100) : "",
+    self_pay_yen: yen,
+    entered_by: normalizeEnteredBy(entered_by),
+  };
+  data.copayEntries.unshift(entry);
+  res.status(201).json(entry);
+});
+router.delete("/api/copay/entries/:id", (req, res) => {
+  const data = getData(getDiseaseId(req));
+  const idx = data.copayEntries.findIndex((e) => e.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: "Not found" });
+  data.copayEntries.splice(idx, 1);
+  res.json({ deleted: true });
 });
 
 // クリニックマスタ
@@ -857,7 +1154,6 @@ router.delete("/api/clinics/:id", (req, res) => {
 });
 
 // 受診（visits）
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 router.get("/api/visits", (req, res) => {
   const data = getData(getDiseaseId(req));
   res.json([...data.visits].sort((a, b) => b.date.localeCompare(a.date)));

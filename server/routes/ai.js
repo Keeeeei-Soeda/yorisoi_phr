@@ -441,8 +441,27 @@ router.post("/scan-lab", async (req, res) => {
 
     const labItems = tmpl.labConfig?.items || [];
     const itemsDesc = labItems.map((l) => `- ${l.id} (${l.label}, ${l.unit})`).join("\n");
+    const alsMode = tmpl.labConfig?.mode === "als_safety" || diseaseId === "als";
 
-    const prompt = `検査結果の画像を読み取り、指定された検査項目の数値を転記してください。
+    const prompt = alsMode
+      ? `検査結果の画像を読み取り、指定キーに該当する数値のみ JSON で返してください。該当なしは null。JSON 以外を出力しないでください。
+
+【抽出対象キー（これ以外は返さない）】
+${itemsDesc}
+
+【出力形式】
+{
+  "exam_date": "YYYY-MM-DD or null",
+  "labs": {
+${labItems.map((l) => `    "${l.id}": { "value": <数値 or null>, "unit": "${l.unit}" }`).join(",\n")}
+  }
+}
+
+【注意】
+- 上記キーに該当する数値のみ。全項目抽出はしない
+- 基準値判定・診断コメントは禁止
+- 単位換算は行わない`
+      : `検査結果の画像を読み取り、指定された検査項目の数値を転記してください。
 
 【抽出対象】
 ${itemsDesc}
@@ -470,16 +489,34 @@ ${labItems.map((l) => `    "${l.id}": <数値 or null>`).join(",\n")}
       return res.status(500).json({ error: "Failed to parse AI response", raw: responseText });
     }
 
-    // サニタイズ
+    // サニタイズ（ALS は labs[id].value、従来は values[id]）
     const cleanValues = {};
     labItems.forEach((item) => {
-      const v = parsed.values?.[item.id];
-      if (v !== null && v !== undefined && !isNaN(parseFloat(v))) {
-        cleanValues[item.id] = parseFloat(v);
+      const raw = alsMode
+        ? (parsed.labs?.[item.id]?.value ?? parsed.values?.[item.id])
+        : parsed.values?.[item.id];
+      if (raw !== null && raw !== undefined && !isNaN(parseFloat(raw))) {
+        cleanValues[item.id] = parseFloat(raw);
       }
     });
 
-    res.json({ date: parsed.date || null, values: cleanValues });
+    const examDate = parsed.exam_date || parsed.date || null;
+    res.json({
+      date: examDate,
+      exam_date: examDate,
+      values: cleanValues,
+      labs: alsMode
+        ? Object.fromEntries(
+            labItems.map((item) => [
+              item.id,
+              {
+                value: cleanValues[item.id] ?? null,
+                unit: item.unit,
+              },
+            ])
+          )
+        : undefined,
+    });
   } catch (err) {
     console.error("scan-lab error:", err);
     res.status(500).json({ error: err.message });

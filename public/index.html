@@ -322,6 +322,16 @@
 
     /** 疾患テンプレートに応じたホームメニューを組み立てる */
     function buildHomeButtons(template, q) {
+      // ALS など: テンプレートで明示したフラット導線のみ（ボディマップ・気圧・痛みなし）
+      if (template.homeConfig?.menuButtons?.length) {
+        return template.homeConfig.menuButtons.map((b) => ({
+          href: b.href + q,
+          icon: b.icon,
+          label: b.label,
+          desc: b.desc,
+        }));
+      }
+
       const buttons = [
         { href: "/simple/record.html" + q, icon: "edit_note", label: "きろくする", desc: "受診や体調をのこす" },
       ];
@@ -404,12 +414,18 @@
             </div>
           </a>
         `).join("");
-        document.getElementById("home-menu-buttons").innerHTML = html;
+        const menuEl = document.getElementById("home-menu-buttons");
+        if (template.homeConfig?.layout === "als") {
+          menuEl.innerHTML = '<div id="als-copay-home" class="als-progress-wrap" style="display:none;"></div>' + html;
+          loadAlsCopayHomeWidget();
+        } else {
+          menuEl.innerHTML = html;
+        }
         document.getElementById("settei-link").href = "/simple/settings.html" + q;
         document.getElementById("emergency-link").href = "/emergency-card.html" + q + "&from=simple";
 
         // 困りごと質問モーダルの初期化
-        initIntentModal(q);
+        initIntentModal(q, template);
       } catch (err) {
         console.error("Init error:", err);
         document.getElementById("home-menu-buttons").innerHTML =
@@ -417,7 +433,7 @@
       }
     });
 
-    function initIntentModal(qStr) {
+    function initIntentModal(qStr, template) {
       // ?intent=skip があったらスキップ（戻るボタンで戻った時に再表示しない）
       const sp = new URLSearchParams(location.search);
       if (sp.get("intent") === "skip") return;
@@ -427,7 +443,7 @@
       const list = document.getElementById("intent-list");
       document.getElementById("intent-greet").textContent = pickGreet();
 
-      const items = [
+      const defaultItems = [
         { icon: "edit_note", label: "今日の体調を残しておきたい",
           sub: "ひとことだけでも大丈夫です",
           go: () => { markIntentShown(); location.href = "/simple/record.html" + qStr + "&intent=selflog"; } },
@@ -444,6 +460,21 @@
           sub: "それも大事な選択です",
           go: () => { markIntentShown(); closeIntent(true); } },
       ];
+
+      const items = (template?.homeConfig?.intentItems || []).length
+        ? template.homeConfig.intentItems.map((it) => ({
+            icon: it.icon,
+            label: it.label,
+            sub: it.sub,
+            quiet: !!it.quiet,
+            go: () => {
+              markIntentShown();
+              if (it.action === "closeQuiet") closeIntent(true);
+              else if (it.href) location.href = it.href + qStr;
+              else closeIntent(false);
+            },
+          }))
+        : defaultItems;
 
       list.innerHTML = "";
       items.forEach((it) => {
@@ -472,6 +503,40 @@
         // 「何もしないで閉じたい」を選んだ時：やさしさカードを表示、ホーム文を切替
         document.getElementById("gentle-card").style.display = "block";
         document.getElementById("home-tagline").style.display = "none";
+      }
+    }
+
+    async function loadAlsCopayHomeWidget() {
+      const el = document.getElementById("als-copay-home");
+      if (!el) return;
+      try {
+        const ym = new Date().toISOString().slice(0, 7);
+        const s = await apiGet("/api/copay/month/" + ym);
+        const total = s.total_yen || 0;
+        const cap = s.certificate?.monthly_cap_yen;
+        if (cap == null && total === 0) {
+          el.style.display = "block";
+          el.innerHTML = `<div style="font-size:13px;font-weight:700;color:var(--gray-600);">今月の自己負担</div>
+            <p class="text-sm text-muted" style="margin-top:6px;">受給者証の上限額を設定すると、ここに表示されます。</p>`;
+          return;
+        }
+        const remaining = s.remaining_yen;
+        const pct = cap > 0 ? Math.min(100, Math.round((total / cap) * 100)) : 0;
+        el.style.display = "block";
+        el.innerHTML = `
+          <div style="font-size:13px;font-weight:700;color:var(--gray-600);">今月の自己負担</div>
+          <div style="font-size:22px;font-weight:800;margin-top:4px;">
+            ¥${total.toLocaleString()}
+            <span style="font-size:13px;font-weight:600;color:var(--gray-500);">
+              / ${cap != null ? "¥" + Number(cap).toLocaleString() : "—"}
+            </span>
+          </div>
+          ${cap != null ? `<div class="als-progress-bar"><div class="als-progress-fill${s.cap_reached ? " reached" : ""}" style="width:${pct}%"></div></div>
+            <div class="text-sm text-muted">残り ¥${Number(remaining || 0).toLocaleString()}</div>` : ""}
+          ${s.cap_reached ? `<div class="als-cap-ok">今月はもう上限に達しています</div>` : ""}
+          <a href="/als-copay.html?disease=als" class="text-sm" style="display:inline-block;margin-top:8px;color:var(--brand-700);font-weight:600;">明細を見る</a>`;
+      } catch (err) {
+        console.warn("copay home widget:", err);
       }
     }
   </script>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>自己負担上限額管理票 - よりそい ALS</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="header">
+    <button class="header-back" onclick="location.href='/?disease='+encodeURIComponent(getDiseaseId())+'&intent=skip'">&larr;</button>
+    <h1>自己負担上限額管理票</h1>
+  </div>
+
+  <div class="content">
+    <div class="als-hint">複数の医療機関・薬局・訪問看護の自己負担を月ごとに合算します。上限額は受給者証の記載を優先してください。</div>
+    <div id="entered-by-mount"></div>
+
+    <div class="als-progress-wrap" id="summary-card">
+      <div class="text-sm text-muted">読み込み中...</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">受給者証の上限額</div>
+      <div class="form-group">
+        <label class="form-label">所得区分（参考）</label>
+        <select class="form-input" id="income-category"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">月額自己負担上限額（円）※受給者証の実額</label>
+        <input type="number" class="form-input" id="monthly-cap" min="0" step="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">受給者証番号（任意）</label>
+        <input type="text" class="form-input" id="cert-number" placeholder="任意">
+      </div>
+      <p class="text-sm text-muted" style="margin-bottom:10px;">所得区分の目安は参考値です。軽症高額・高額かつ長期などの例外があるため、最終的には受給者証の記載を入力してください。</p>
+      <button class="btn btn-outline" id="btn-save-cert" type="button">上限額を保存</button>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">明細を追加（3項目）</div>
+      <div class="form-group">
+        <label class="form-label">日付</label>
+        <input type="date" class="form-input" id="entry-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">施設種別</label>
+        <select class="form-input" id="facility-type"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">金額（円）</label>
+        <input type="number" class="form-input" id="self-pay" min="0" step="1" placeholder="例: 3200">
+      </div>
+      <div class="form-group">
+        <label class="form-label">施設名（任意）</label>
+        <input type="text" class="form-input" id="facility-name" placeholder="任意">
+      </div>
+      <button class="btn btn-primary" id="btn-add-entry" type="button">明細を追加</button>
+    </div>
+
+    <h2 style="font-size:14px;font-weight:700;color:var(--gray-600);margin:8px 0;">今月の明細</h2>
+    <div id="entry-list"></div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+  <script src="/js/liff-init.js"></script>
+  <script src="/js/als-common.js"></script>
+  <script>
+    let categories = [];
+    let facilityTypes = [];
+    let yearMonth = new Date().toISOString().slice(0, 7);
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const { template } = await initLiff();
+        categories = template.copayConfig?.incomeCategories || [];
+        facilityTypes = template.copayConfig?.facilityTypes || [];
+        mountEnteredByToggle(document.getElementById("entered-by-mount"));
+
+        const catSel = document.getElementById("income-category");
+        catSel.innerHTML = categories.map((c) =>
+          `<option value="${escapeHtml(c.id)}" data-cap="${c.defaultCapYen}">${escapeHtml(c.label)}（目安 ${c.defaultCapYen.toLocaleString()}円）</option>`
+        ).join("");
+        catSel.addEventListener("change", () => {
+          const opt = catSel.selectedOptions[0];
+          if (opt && document.getElementById("monthly-cap").value === "") {
+            document.getElementById("monthly-cap").value = opt.dataset.cap;
+          }
+        });
+        if (catSel.options.length) {
+          document.getElementById("monthly-cap").placeholder = catSel.options[0].dataset.cap;
+        }
+
+        document.getElementById("facility-type").innerHTML = facilityTypes.map((f) =>
+          `<option value="${escapeHtml(f.id)}">${escapeHtml(f.label)}</option>`
+        ).join("");
+        document.getElementById("entry-date").value = new Date().toISOString().slice(0, 10);
+
+        document.getElementById("btn-save-cert").addEventListener("click", saveCert);
+        document.getElementById("btn-add-entry").addEventListener("click", addEntry);
+
+        await refresh();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("summary-card").innerHTML =
+          '<p class="text-sm" style="color:var(--danger)">読み込みに失敗しました</p>';
+      }
+    });
+
+    async function refresh() {
+      const summary = await apiGet("/api/copay/month/" + yearMonth);
+      const cert = summary.certificate;
+      if (cert) {
+        if (cert.income_category) document.getElementById("income-category").value = cert.income_category;
+        document.getElementById("monthly-cap").value = cert.monthly_cap_yen;
+        document.getElementById("cert-number").value = cert.cert_number || "";
+      }
+
+      const total = summary.total_yen || 0;
+      const cap = cert?.monthly_cap_yen;
+      const remaining = summary.remaining_yen;
+      const pct = cap > 0 ? Math.min(100, Math.round((total / cap) * 100)) : 0;
+
+      let html = `
+        <div class="flex-between">
+          <div style="font-size:13px;font-weight:700;color:var(--gray-600);">${escapeHtml(yearMonth)} の自己負担</div>
+        </div>
+        <div style="font-size:28px;font-weight:800;margin-top:6px;">
+          ¥${total.toLocaleString()}
+          <span style="font-size:14px;font-weight:600;color:var(--gray-500);">
+            / ${cap != null ? "¥" + cap.toLocaleString() : "上限未設定"}
+          </span>
+        </div>`;
+      if (cap != null) {
+        html += `<div class="als-progress-bar"><div class="als-progress-fill${summary.cap_reached ? " reached" : ""}" style="width:${pct}%"></div></div>`;
+        html += `<div class="text-sm text-muted">残り ¥${(remaining || 0).toLocaleString()}</div>`;
+      } else {
+        html += `<p class="text-sm text-muted" style="margin-top:8px;">先に受給者証の月額上限を保存してください。</p>`;
+      }
+      if (summary.cap_reached) {
+        html += `<div class="als-cap-ok">今月はもう上限に達しています。これ以上の自己負担はありません。ひと安心ですね。</div>`;
+      }
+      document.getElementById("summary-card").innerHTML = html;
+
+      const labelOf = (id) => facilityTypes.find((f) => f.id === id)?.label || id;
+      const list = document.getElementById("entry-list");
+      if (!summary.entries?.length) {
+        list.innerHTML = '<p class="text-sm text-muted">まだ明細がありません。</p>';
+        return;
+      }
+      list.innerHTML = summary.entries.map((e) => `
+        <div class="card" style="padding:12px 14px;margin-bottom:8px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(e.date)}</strong>
+            <strong>¥${Number(e.self_pay_yen).toLocaleString()}</strong>
+          </div>
+          <div class="text-sm text-muted" style="margin-top:4px;">
+            ${escapeHtml(labelOf(e.facility_type))}
+            ${e.facility_name ? " · " + escapeHtml(e.facility_name) : ""}
+            · ${escapeHtml(enteredByLabel(e.entered_by))}
+          </div>
+        </div>`).join("");
+    }
+
+    async function saveCert() {
+      const monthly_cap_yen = document.getElementById("monthly-cap").value;
+      if (monthly_cap_yen === "") { alert("月額上限額を入力してください"); return; }
+      try {
+        await apiPost("/api/copay/certificate", {
+          income_category: document.getElementById("income-category").value,
+          monthly_cap_yen: parseInt(monthly_cap_yen, 10),
+          cert_number: document.getElementById("cert-number").value,
+        });
+        await refresh();
+        alert("保存しました");
+      } catch (err) {
+        alert("保存に失敗しました");
+      }
+    }
+
+    async function addEntry() {
+      const date = document.getElementById("entry-date").value;
+      const facility_type = document.getElementById("facility-type").value;
+      const self_pay_yen = document.getElementById("self-pay").value;
+      if (!date || self_pay_yen === "") { alert("日付と金額を入力してください"); return; }
+      try {
+        await apiPost("/api/copay/entries", {
+          date,
+          facility_type,
+          facility_name: document.getElementById("facility-name").value,
+          self_pay_yen: parseInt(self_pay_yen, 10),
+          entered_by: getEnteredBy(),
+          year_month: yearMonth,
+        });
+        document.getElementById("self-pay").value = "";
+        document.getElementById("facility-name").value = "";
+        await refresh();
+      } catch (err) {
+        alert("追加に失敗しました");
+      }
+    }
+  </script>
+</body>
+</html>

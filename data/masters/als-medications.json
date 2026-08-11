@@ -1,0 +1,49 @@
+{
+  "categories": [
+    { "id": "disease_modifying", "name": "疾患修飾薬", "description": "進行抑制・延命", "step": 1 },
+    { "id": "symptom", "name": "対症療法", "description": "症状緩和", "step": 2 },
+    { "id": "other", "name": "その他", "description": "", "step": 3 }
+  ],
+  "medications": [
+    {
+      "genericName": "リルゾール",
+      "brandNames": ["リルゾール", "リルテック"],
+      "category": "disease_modifying",
+      "dosageForms": ["経口"],
+      "notes": "肝機能モニタリングが必要"
+    },
+    {
+      "genericName": "エダラボン",
+      "brandNames": ["ラジカット", "エダラボン"],
+      "category": "disease_modifying",
+      "dosageForms": ["点滴", "経口"],
+      "notes": "投与サイクル管理は Phase 2"
+    },
+    {
+      "genericName": "バクロフェン",
+      "brandNames": ["リオレサール", "ギャバロン"],
+      "category": "symptom",
+      "dosageForms": ["経口"],
+      "notes": "痙性への対症"
+    },
+    {
+      "genericName": "チザニジン",
+      "brandNames": ["テルネリン"],
+      "category": "symptom",
+      "dosageForms": ["経口"]
+    },
+    {
+      "genericName": "硫酸マグネシウム",
+      "brandNames": ["酸化マグネシウム", "マグミット"],
+      "category": "symptom",
+      "dosageForms": ["経口"],
+      "notes": "便秘対策として処方されることがある"
+    },
+    {
+      "genericName": "その他",
+      "brandNames": ["その他（手入力）"],
+      "category": "other",
+      "dosageForms": ["経口", "その他"]
+    }
+  ]
+}
